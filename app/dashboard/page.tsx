@@ -28,7 +28,8 @@ export default function DashboardPage() {
           setLoading(false);
         }
       } else {
-        window.location.href = '/'; // redirect if not logged in
+        window.location.href = '/auth';
+        return null; // redirect if not logged in
       }
     });
 

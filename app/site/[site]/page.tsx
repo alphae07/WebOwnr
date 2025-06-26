@@ -2,18 +2,14 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseConfig';
 import { notFound } from 'next/navigation';
 
-interface PageProps {
-  params: { site: string };
-}
-
-export default async function SitePage({ params }: PageProps) {
+export default async function SitePage({ params }: { params: { site: string } }) {
   const subdomain = params.site;
 
   const docRef = doc(db, 'sites', subdomain);
   const docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) {
-    notFound(); // this renders Next.js 404 page
+    notFound();
   }
 
   const site = docSnap.data();

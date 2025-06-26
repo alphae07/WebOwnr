@@ -7,9 +7,9 @@ export default async function SitePage({
 }: {
   params: { site: string };
 }) {
-  const subdomain = params.site;
+  const siteId = params.site;
 
-  const docRef = doc(db, 'sites', subdomain);
+  const docRef = doc(db, 'sites', siteId);
   const docSnap = await getDoc(docRef);
 
   if (!docSnap.exists()) {

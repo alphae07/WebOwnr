@@ -1,40 +1,47 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/firebase/firebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "@/firebase/firebaseConfig";
+import { collection, getDocs } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [siteData, setSiteData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUserId(user.uid);
-        try {
-          const querySnapshot = await getDocs(collection(db, 'sites'));
-          const userSite = querySnapshot.docs.find(
-            (doc) => doc.data().uid === user.uid
-          );
-          if (userSite) {
-            setSiteData(userSite.data());
-          }
-        } catch (error) {
-          console.error('Failed to load site:', error);
-        } finally {
-          setLoading(false);
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      setUserId(user.uid);
+
+      try {
+        const querySnapshot = await getDocs(collection(db, "sites"));
+        const userSite = querySnapshot.docs.find(
+          (doc) => doc.data().uid === user.uid
+        );
+
+        if (!userSite) {
+          router.push("/onboarding");
+          return;
         }
-      } else {
-        window.location.href = '/auth';
-        return null; // redirect if not logged in
+
+        setSiteData(userSite.data());
+      } catch (error) {
+        console.error("Error fetching site:", error);
+      } finally {
+        setLoading(false);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return <div className="p-10 text-center text-lg">Loading dashboard...</div>;
@@ -56,13 +63,13 @@ export default function DashboardPage() {
       <div className="bg-gray-100 p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-semibold mb-2">Site Details</h2>
         <p>
-          <strong>Subdomain:</strong>{' '}
-          <a href={siteLink} target="_blank" className="text-blue-600 underline">
+          <strong>Subdomain:</strong>{" "}
+          <a href={siteLink} target="_blank" className="text-blue-600 underline" rel="noopener noreferrer">
             {siteLink}
           </a>
         </p>
         <p>
-          <strong>Status:</strong>{' '}
+          <strong>Status:</strong>{" "}
           <span className="inline-block px-2 py-1 bg-yellow-300 text-sm rounded">
             {siteData.status}
           </span>
@@ -71,7 +78,7 @@ export default function DashboardPage() {
           <strong>Niche:</strong> {siteData.niche}
         </p>
         <p>
-          <strong>Primary Color:</strong>{' '}
+          <strong>Primary Color:</strong>{" "}
           <span
             className="inline-block w-4 h-4 rounded-full border"
             style={{ backgroundColor: siteData.color }}
@@ -82,7 +89,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {siteData.status === 'pending' && (
+      {siteData.status === "pending" && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
           🚧 Your website is in <strong>maintenance mode</strong>. Our team is setting up your content now. It’ll be live in less than 24 hours.
         </div>

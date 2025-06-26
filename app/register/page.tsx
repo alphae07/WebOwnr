@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [color, setColor] = useState('#000000');
   const [tagline, setTagline] = useState('');
     const [niche, setNiche] = useState('');
+    const [services, setServices] = useState('');
     const [about, setAbout] = useState('');
   const [plan, setPlan] = useState('starter');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -34,6 +35,7 @@ export default function RegisterPage() {
         niche,
         subdomain,
         color,
+        services,
         about,
         plan,
         logo: '',
@@ -44,7 +46,11 @@ export default function RegisterPage() {
       // Save to Firestore
       console.log("Creating Firestore document...");
 
-      await setDoc(doc(db, 'sites', subdomain), siteData);
+      await setDoc(doc(db, "sites", subdomain), {
+          ...siteData,
+          template: "modernStartup", // or any selected ID
+        });
+
 
       console.log("Firestore document created");
 
@@ -103,6 +109,12 @@ export default function RegisterPage() {
         value={subdomain}
         onChange={(e) => setSubdomain(e.target.value.toLowerCase())}
       />
+      <input
+        className="border p-2 mb-2 w-full"
+        placeholder="Business Services"
+        value={services}
+        onChange={(e) => setServices(e.target.value)}
+        />
       <div className="mb-2">
         <label className="block mb-1 font-semibold">Brand Color:</label>
         <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />

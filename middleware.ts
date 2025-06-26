@@ -4,26 +4,24 @@ export function middleware(req: NextRequest) {
   const host = req.headers.get('host') || '';
   const url = req.nextUrl;
 
-  // Handle localhost (for dev): localhost:3000
   const isLocalhost = host.includes('localhost');
   const domainParts = host.split('.');
 
   let subdomain = '';
 
   if (isLocalhost) {
-    // e.g. subdomain.localhost:3000
-    subdomain = domainParts[0];
+    subdomain = domainParts[0]; // e.g. freshbeans.lvh.me:3000 → freshbeans
   } else {
-    // e.g. freshbeans.webownr.com → subdomain = freshbeans
-    subdomain = domainParts[0];
+    subdomain = domainParts[0]; // e.g. freshbeans.webownr.com
   }
 
-  // If subdomain is www or main domain, continue normally
-  if (subdomain === 'www' || subdomain === 'webownr') {
-    return NextResponse.next();
+  // 🛑 Skip if this is not a subdomain
+  const baseHosts = ['localhost', 'lvh', 'www', 'webownr'];
+  if (baseHosts.includes(subdomain)) {
+    return NextResponse.next(); // Show landing page or dashboard
   }
 
-  // Rewrite request to dynamic route
+  // ✅ Rewrite to /site/[subdomain]
   const newUrl = new URL(`/site/${subdomain}`, req.url);
   return NextResponse.rewrite(newUrl);
 }

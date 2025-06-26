@@ -2,7 +2,11 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseConfig';
 import { notFound } from 'next/navigation';
 
-export default async function SitePage({ params }: { params: { site: string } }) {
+export default async function SitePage({
+  params,
+}: {
+  params: { site: string };
+}) {
   const subdomain = params.site;
 
   const docRef = doc(db, 'sites', subdomain);

@@ -1,102 +1,76 @@
-import Image from "next/image";
+// app/page.tsx
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
+export default function HomePage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-cyan-50 to-white">
+      {/* Header */}
+      <header className="flex justify-between items-center px-8 py-4 border-b">
+        <h1 className="text-2xl font-bold text-cyan-600">WebOwnr</h1>
+        <nav className="space-x-6">
+          <Link href="/login" className="text-gray-600 hover:text-cyan-600">
+            Login
+          </Link>
+          <Link href="/register">
+            <Button className="bg-cyan-600 hover:bg-cyan-700 text-white">
+              Get Started
+            </Button>
+          </Link>
+        </nav>
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Hero Section */}
+      <section className="flex flex-col items-center text-center px-6 py-20">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-gray-800 max-w-2xl leading-tight">
+          Create Your Website <span className="text-cyan-600">Effortlessly</span>
+        </h2>
+        <p className="mt-4 text-lg text-gray-600 max-w-xl">
+          WebOwnr helps you launch a professional website instantly.
+          Choose a design, pick a domain, and go live in minutes —
+          no coding required.
+        </p>
+        <div className="mt-6 flex gap-4">
+          <Link href="/register">
+            <Button className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 text-lg rounded-xl shadow">
+              Start Free
+            </Button>
+          </Link>
+          <Link href="/login">
+            <Button variant="outline" className="px-6 py-3 text-lg rounded-xl">
+              Dashboard
+            </Button>
+          </Link>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      {/* Features */}
+      <section className="grid md:grid-cols-3 gap-8 px-8 py-16 max-w-6xl mx-auto">
+        <div className="p-6 rounded-2xl shadow bg-white hover:shadow-lg transition">
+          <h3 className="font-semibold text-xl text-cyan-600">Instant Setup</h3>
+          <p className="text-gray-600 mt-2">
+            Get your website live in seconds with auto-generated templates and domains.
+          </p>
+        </div>
+        <div className="p-6 rounded-2xl shadow bg-white hover:shadow-lg transition">
+          <h3 className="font-semibold text-xl text-cyan-600">Custom Branding</h3>
+          <p className="text-gray-600 mt-2">
+            Upload your logo, choose your brand colors, and personalize your site instantly.
+          </p>
+        </div>
+        <div className="p-6 rounded-2xl shadow bg-white hover:shadow-lg transition">
+          <h3 className="font-semibold text-xl text-cyan-600">Easy Management</h3>
+          <p className="text-gray-600 mt-2">
+            Manage your content, domains, and subscriptions easily from your dashboard.
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="mt-auto py-6 text-center text-gray-500 border-t">
+        © {new Date().getFullYear()} WebOwnr. All rights reserved.
       </footer>
     </div>
   );

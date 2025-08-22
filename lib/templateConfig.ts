@@ -10,7 +10,6 @@ export type TemplateItem = {
   component: any;
 };
 
-// Array for iteration in UI
 export const templates: TemplateItem[] = [
   {
     id: "modernStartup",
@@ -35,8 +34,7 @@ export const templates: TemplateItem[] = [
   },
 ];
 
-// Optional: Map for fast access by ID
-export const templatesMap = templates.reduce((map, template) => {
-  map[template.id] = template;
-  return map;
+export const templatesMap = templates.reduce((acc, t) => {
+  acc[t.id] = t;
+  return acc;
 }, {} as Record<string, TemplateItem>);

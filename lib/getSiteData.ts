@@ -1,19 +1,11 @@
-// lib/getSiteData.ts
-import { db } from "@/lib/firebase";
+import { db } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 export async function getSiteData(subdomain: string) {
-  try {
-    const docRef = doc(db, "sites", subdomain);
-    const docSnap = await getDoc(docRef);
+  const docRef = doc(db, "sites", subdomain);
+  const snapshot = await getDoc(docRef);
 
-    if (docSnap.exists()) {
-      return docSnap.data();
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error("Error fetching site data:", error);
-    return null;
-  }
+  if (!snapshot.exists()) return null;
+
+  return snapshot.data();
 }

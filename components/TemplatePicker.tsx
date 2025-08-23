@@ -1,6 +1,6 @@
-"use client";
+"use client"; // TemplatePicker.tsx 
 
-import { templates, TemplateItem } from "@/lib/templateConfig";
+import { templates } from "@/lib/templateConfig";
 import Image from "next/image";
 
 interface TemplatePickerProps {
@@ -16,7 +16,7 @@ export default function TemplatePicker({
 }: TemplatePickerProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      {templates.map((template: TemplateItem) => (
+      {Object.values(templates).map((template: any) => (
         <div
           key={template.id}
           onClick={() => !disabled && setSelected(template.id)}

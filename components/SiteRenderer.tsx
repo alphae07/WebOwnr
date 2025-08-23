@@ -1,94 +1,83 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase"; // <-- ensure your firebase file is here
 import { doc, getDoc } from "firebase/firestore";
-import { templatesMap } from "@/lib/templateConfig"; // we created this earlier
+import { db } from "@/firebase/firebaseConfig";
+import { templates } from "@/lib/templateConfig";
 
-type SiteDoc = {
-  subdomain: string;
-  template?: string;
-  status?: "active" | "pending" | "maintenance" | "inactive";
-  branding?: { logo?: string; primaryColor?: string };
-  content?: Record<string, any>;
+export type SiteData = {
+  id?: string;
+  subdomain?: string;
   businessName?: string;
   tagline?: string;
+  about?: string;
+  niche?: string;
+  color?: string;
+  logoUrl?: string;
+  template?: "modernStartup" | "simpleBusiness" | "elegantBrand";
+  services?: string[];
+  status?: "pending" | "live" | "maintenance";
 };
 
-export default function SiteRenderer({ subdomain }: { subdomain: string }) {
+
+
+export default function SiteRenderer({ siteSlug }: { siteSlug: string }) {
+  const [data, setData] = useState<SiteData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [site, setSite] = useState<SiteDoc | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    let mounted = true;
+
+    async function load() {
       try {
-        const ref = doc(db, "sites", subdomain);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
-          setNotFound(true);
+        if (!siteSlug) {
+          setMissing(true);
           return;
         }
-        setSite(snap.data() as SiteDoc);
+        // Firestore: sites/{subdomain}
+        const ref = doc(db, "sites", siteSlug);
+        const snap = await getDoc(ref);
+
+        if (!mounted) return;
+
+        if (!snap.exists()) {
+          setMissing(true);
+          return;
+        }
+        const payload = snap.data() as SiteData;
+        setData({ id: snap.id, ...payload });
       } catch (e) {
-        console.error("Failed to fetch site:", e);
-        setNotFound(true);
+        console.error("Failed to load site:", e);
+        setMissing(true);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
-    })();
-  }, [subdomain]);
+    }
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [siteSlug]);
 
   if (loading) {
+    return <div className="p-8 text-center">Loading site…</div>;
+  }
+  if (missing || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Loading site…</p>
+      <div className="p-8 text-center text-red-600">
+        Site not found for: <b>{siteSlug}</b>
       </div>
     );
   }
 
-  if (notFound || !site) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-semibold">404 — Site not found</h1>
-      </div>
-    );
-  }
+  // pick template (fallback to modernStartup)
+  const templateKey =
+    data.template && templates[data.template] ? data.template : "modernStartup";
 
-  if (site.status === "pending" || site.status === "maintenance") {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center p-6">
-        <h1 className="text-3xl font-bold mb-2">🚧 Setting Things Up</h1>
-        <p className="text-gray-600 max-w-md">
-          This site is in maintenance mode while content is being prepared.
-          Please check back soon.
-        </p>
-      </div>
-    );
-  }
+  const TemplateComp = templates[templateKey].component;
 
-  // Pick template; default to "modernStartup"
-  const templateId = site.template || "modernStartup";
-  const Template = templatesMap[templateId]?.component;
-
-  if (!Template) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">
-          Template <strong>{templateId}</strong> not found.
-        </p>
-      </div>
-    );
-  }
-
-  // Render the chosen template with site data
-  return (
-    <Template
-      branding={site.branding}
-      content={site.content}
-      businessName={site.businessName}
-      tagline={site.tagline}
-      subdomain={site.subdomain}
-    />
-  );
+  // All templates receive a uniform `data` prop
+  return <TemplateComp data={data} />;
 }

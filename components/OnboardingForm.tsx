@@ -123,7 +123,7 @@ const isPremium = plan === "premium" || plan === "growth";
             )}
                 <h4 className="font-bold text-sm mb-2">{tpl.name}</h4>
                 <tpl.component
-                  site={{ businessName: form.businessName || "Your Brand" }}
+                  data={{ businessName: form.businessName || "Your Brand" }}
                 />
               </div>
             ))}

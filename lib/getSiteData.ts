@@ -1,11 +1,20 @@
-import { db } from "./firebase";
-import { doc, getDoc } from "firebase/firestore";
+// lib/getSiteData.ts
+import { SiteData } from "@/components/SiteRenderer";
 
-export async function getSiteData(subdomain: string) {
-  const docRef = doc(db, "sites", subdomain);
-  const snapshot = await getDoc(docRef);
+// Mock function - replace with Firestore later
+export async function getSiteData(site: string): Promise<SiteData | null> {
+  const sites: Record<string, SiteData> = {
+    "alpha": {
+      businessName: "Alpha Site",
+      color: "#00bcd4",
+      about: "Welcome to Alpha’s custom site.",
+    },
+    "beta": {
+      businessName: "Beta Site",
+      color: "#ff5722",
+      about: "This is Beta’s landing page.",
+    },
+  };
 
-  if (!snapshot.exists()) return null;
-
-  return snapshot.data();
+  return sites[site] || null;
 }

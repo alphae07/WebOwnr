@@ -1,40 +1,37 @@
 import ModernStartup from "@/templates/modernStartup";
 import SimpleBusiness from "@/templates/simpleBusiness";
 import ElegantBrand from "@/templates/elegantBrand";
+import { ReactNode } from "react";
 
-export type TemplateItem = {
-  id: string;
+type TemplateEntry = {
   name: string;
+  id: "modernStartup" | "simpleBusiness" | "elegantBrand";
   preview: string;
   description: string;
-  component: any;
+  // Each template is a React component that accepts `{ data }`
+  component:  React.ComponentType<{ data: any }>;
 };
 
-export const templates: TemplateItem[] = [
-  {
+export const templates: Record<TemplateEntry["id"], TemplateEntry> = {
+  modernStartup: {
     id: "modernStartup",
     name: "Modern Startup",
     preview: "/templates/modernStartup-preview.png",
-    description: "A bold and modern template for tech startups and digital creators.",
+    description: "Bold, modern look for startups and creators.",
     component: ModernStartup,
   },
-  {
+  simpleBusiness: {
     id: "simpleBusiness",
     name: "Simple Business",
     preview: "/templates/simpleBusiness-preview.png",
-    description: "Clean and professional for small businesses or service providers.",
+    description: "Clean and professional—great for services and SMBs.",
     component: SimpleBusiness,
   },
-  {
+  elegantBrand: {
     id: "elegantBrand",
     name: "Elegant Brand",
     preview: "/templates/elegantBrand-preview.png",
-    description: "An elegant layout for product-based businesses and e-commerce.",
+    description: "Premium feel—great for brands and product sites.",
     component: ElegantBrand,
   },
-];
-
-export const templatesMap = templates.reduce((acc, t) => {
-  acc[t.id] = t;
-  return acc;
-}, {} as Record<string, TemplateItem>);
+};

@@ -1,20 +1,16 @@
 // lib/getSiteData.ts
-import { SiteData } from "@/components/SiteRenderer";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { SiteData } from "@/lib/data";
 
-// Mock function - replace with Firestore later
-export async function getSiteData(site: string): Promise<SiteData | null> {
-  const sites: Record<string, SiteData> = {
-    "alpha": {
-      businessName: "Alpha Site",
-      color: "#00bcd4",
-      about: "Welcome to Alpha’s custom site.",
-    },
-    "beta": {
-      businessName: "Beta Site",
-      color: "#ff5722",
-      about: "This is Beta’s landing page.",
-    },
-  };
+// Fetch site by slug (subdomain)
+export async function getSiteBySlug(slug: string): Promise<SiteData | null> {
+  const ref = doc(db, "sites", slug);
+  const snap = await getDoc(ref);
+  return snap.exists() ? (snap.data() as SiteData) : null;
+}
 
-  return sites[site] || null;
+// Get a page by path
+export function getPageByPath(site: SiteData, path: string) {
+  return site.pages[path] ?? null;
 }

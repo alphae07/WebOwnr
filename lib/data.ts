@@ -1,12 +1,20 @@
 // lib/data.ts
 
+export type Section =
+  | { type: "hero"; title: string; subtitle: string }
+  | { type: "features"; items: string[] }
+  | { type: "footer"; text: string }
+  | { type: string; [key: string]: any }; // fallback for future sections
+
+export type PageData = {
+  sections: Section[];
+};
+
 export type SiteData = {
   name: string;
   theme: string;
   pages: {
-    [key: string]: {
-      sections: any[]; // Each section could be hero, about, features, contact...
-    };
+    [key: string]: PageData;
   };
 };
 

@@ -6,7 +6,7 @@ import Link from "next/link";
 export default function SimpleBusiness({ data }: { data: any }) {
   return (
     <div className="font-sans">
-      <header className="bg-[#f8fafc] p-6 shadow">
+      <header className="p-6 shadow" style={{ backgroundColor: data?.color ?? '#f8fafc'}}>
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-xl font-bold">{data.businessName}</h1>
           <nav className="space-x-4">

@@ -8,6 +8,7 @@ export async function getSiteBySlug(slug: string): Promise<SiteData | null> {
   const ref = doc(db, "sites", slug);
   const snap = await getDoc(ref);
   return snap.exists() ? (snap.data() as SiteData) : null;
+
 }
 
 // Get a page by path

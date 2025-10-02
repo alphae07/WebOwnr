@@ -1,11 +1,12 @@
 // app/(sites)/[site]/page.tsx
 import type { Metadata } from "next";
 import SiteRenderer from "@/components/SiteRenderer";
+import { getSiteData, getPageData } from "@/lib/data"; 
 
-// NOTE: Next.js 15 generated types expect `params` to be a Promise in .next/types
+// NOTE: params is a Promise in Next.js 15
 type ParamsPromise = Promise<{ site: string }>;
 
-// Generate dynamic metadata per subdomain
+// Generate dynamic metadata
 export async function generateMetadata(
   props: { params: ParamsPromise }
 ): Promise<Metadata> {
@@ -19,8 +20,18 @@ export async function generateMetadata(
 
 // Main page render
 export default async function SitePage(props: { params: ParamsPromise }) {
-  const { site } = await props.params;
+  const { site } = await props.params; // ✅ Await params here
 
-  // SiteRenderer handles client-side Firestore fetching
-  return <SiteRenderer siteSlug={site} />;
+  console.log("🔍 Route param site:", site);
+
+  const siteData = await getSiteData(site);
+  console.log("🔥 Firestore result:", siteData);
+  
+  if (!siteData) {
+    return <div>Site not found</div>;
+  }
+
+  const pageData = await getPageData(siteData, "home");
+
+  return <SiteRenderer sitee={siteData} page={pageData} />;
 }

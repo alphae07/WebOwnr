@@ -1,5 +1,4 @@
 // app/(sites)/[site]/[...catchall]/page.tsx
-import type { PageProps } from "next"; // ← key fix
 import { getSiteBySlug } from "@/lib/getSiteData";
 import { renderSite } from "@/lib/render";
 
@@ -10,7 +9,9 @@ interface RouteParams {
 
 export default async function Page({
   params,
-}: PageProps<RouteParams>) {
+}: {
+  params: RouteParams;
+}) {
   const { site, catchall } = params;
 
   const siteData = await getSiteBySlug(site);

@@ -15,9 +15,6 @@ interface EditorPageProps {
 export default function EditorPage({ params }: { params: Record<string, string> }) {
   const { siteSlug } = params;
 
-
-  const { siteSlug } = params;
-
   const [site, setSite] = useState<SiteDoc | null>(null);
   const [form, setForm] = useState<SiteContent>({
     businessName: "",

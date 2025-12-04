@@ -2,17 +2,11 @@
 import { getSiteBySlug } from "@/lib/getSiteData";
 import { renderSite } from "@/lib/render";
 
-export default async function Page({
-  params,
-}: {
-  params: { site: string; catchall?: string[] };
-}) {
+export default async function Page({ params }: { params: { site: string; catchall?: string[] } }) {
   const { site, catchall } = params;
-
   const siteData = await getSiteBySlug(site);
+
   if (!siteData) return <div>Site not found</div>;
 
-  const path = catchall?.join("/") || "home";
-
-  return renderSite(siteData, path);
+  return renderSite(siteData, catchall?.join("/") || "home");
 }

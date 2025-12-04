@@ -12,8 +12,9 @@ interface EditorPageProps {
     siteSlug: string;
   };
 }
+export default function EditorPage({ params }: { params: Record<string, string> }) {
+  const { siteSlug } = params;
 
-export default function EditorPage({ params }: EditorPageProps) {
 
   const { siteSlug } = params;
 

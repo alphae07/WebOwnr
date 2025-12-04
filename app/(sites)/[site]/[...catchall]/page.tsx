@@ -1,3 +1,4 @@
+// app/(sites)/[site]/[...catchall]/page.tsx
 import { getSiteBySlug } from "@/lib/getSiteData";
 import { renderSite } from "@/lib/render";
 
@@ -12,6 +13,5 @@ export default async function Page({
   if (!siteData) return <div>Site not found</div>;
 
   const path = catchall?.join("/") || "home";
-
   return renderSite(siteData, path);
 }

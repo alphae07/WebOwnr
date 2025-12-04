@@ -1,4 +1,3 @@
-// app/(sites)/[site]/[...catchall]/page.tsx
 import { getSiteBySlug } from "@/lib/getSiteData";
 import { renderSite } from "@/lib/render";
 
@@ -7,11 +6,11 @@ type SitePageParams = {
   catchall?: string[];
 };
 
-export default async function Page({
-  params,
-}: {
+interface PageProps {
   params: SitePageParams;
-}) {
+}
+
+export default async function Page({ params }: PageProps) {
   const { site, catchall } = params;
   const siteData = await getSiteBySlug(site);
 

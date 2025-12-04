@@ -1,6 +1,6 @@
 // app/(sites)/[site]/[...catchall]/page.tsx
 import { getSiteBySlug } from "@/lib/getSiteData";
-import { renderSite } from "@/lib/renderSite";
+import { renderSite } from "@/lib/render";
 import { SiteData } from "@/lib/data";
 import { ReactNode } from "react";
 

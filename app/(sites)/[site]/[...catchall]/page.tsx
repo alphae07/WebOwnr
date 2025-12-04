@@ -2,13 +2,12 @@
 import { getSiteBySlug } from "@/lib/getSiteData";
 import { renderSite } from "@/lib/render";
 
-type PageParams = {
-  site: string;
-  catchall?: string[];
-};
-
-export default async function Page(props: { params: PageParams }) {
-  const { site, catchall } = props.params;
+export default async function Page({
+  params,
+}: {
+  params: { site: string; catchall?: string[] };
+}) {
+  const { site, catchall } = params;
 
   const siteData = await getSiteBySlug(site);
   if (!siteData) return <div>Site not found</div>;

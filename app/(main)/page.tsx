@@ -1,57 +1,27 @@
-// app/page.tsx
-"use client";
-
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import HeroSection from "@/components/home/HeroSection";
+import FeaturesSection from "@/components/home/FeaturesSection";
+import HowItWorksSection from "@/components/home/HowItWorksSection";
+import TemplatesSection from "@/components/home/TemplatesSection";
+import PricingSection from "@/components/home/PricingSection";
+import TestimonialsSection from "@/components/home/TestimonialsSection";
+import CTASection from "@/components/home/CTASection";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-cyan-50 to-white">
-      {/* Hero Section */}
-      <section className="flex flex-col items-center text-center px-6 py-20">
-        <h2 className="text-4xl md:text-5xl font-extrabold text-gray-800 max-w-2xl leading-tight">
-          Create Your Website <span className="text-cyan-600">Effortlessly</span>
-        </h2>
-        <p className="mt-4 text-lg text-gray-600 max-w-xl">
-          WebOwnr helps you launch a professional website instantly.
-          Choose a design, pick a domain, and go live in minutes —
-          no coding required.
-        </p>
-        <div className="mt-6 flex gap-4">
-          <Link href="/register">
-            <Button className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 text-lg rounded-xl shadow">
-              Start Free
-            </Button>
-          </Link>
-          <Link href="/auth">
-            <Button variant="outline" className="px-6 py-3 text-lg rounded-xl">
-              Dashboard
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="grid md:grid-cols-3 gap-8 px-8 py-16 max-w-6xl mx-auto">
-        <div className="p-6 rounded-2xl shadow bg-white hover:shadow-lg transition">
-          <h3 className="font-semibold text-xl text-cyan-600">Instant Setup</h3>
-          <p className="text-gray-600 mt-2">
-            Get your website live in seconds with auto-generated templates and domains.
-          </p>
-        </div>
-        <div className="p-6 rounded-2xl shadow bg-white hover:shadow-lg transition">
-          <h3 className="font-semibold text-xl text-cyan-600">Custom Branding</h3>
-          <p className="text-gray-600 mt-2">
-            Upload your logo, choose your brand colors, and personalize your site instantly.
-          </p>
-        </div>
-        <div className="p-6 rounded-2xl shadow bg-white hover:shadow-lg transition">
-          <h3 className="font-semibold text-xl text-cyan-600">Easy Management</h3>
-          <p className="text-gray-600 mt-2">
-            Manage your content, domains, and subscriptions easily from your dashboard.
-          </p>
-        </div>
-      </section>
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <main>
+        <HeroSection />
+        <FeaturesSection />
+        <HowItWorksSection />
+        <TemplatesSection />
+        <PricingSection />
+        <TestimonialsSection />
+        <CTASection />
+      </main>
+      <Footer />
     </div>
   );
 }

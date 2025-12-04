@@ -1,12 +1,21 @@
 // lib/renderSite.tsx
-import React, { JSX } from "react";
+import React, { ReactNode } from "react";
 import SiteRenderer from "@/components/SiteRenderer";
 import { SiteData, PageData } from "@/lib/data";
 
+/**
+ * Render a site given a SiteData object and a page path
+ * @param site The site data
+ * @param path The page path (e.g., "home", "about")
+ * @returns ReactNode for rendering
+ */
+export function renderSite(site: SiteData | null, path: string): ReactNode {
+  if (!site) return <div>Site not found!</div>;
 
+  const page: PageData | undefined = site.pages[path] ?? site.pages["home"];
 
-export function renderSite(site: SiteData, path: string) {
-  const page: PageData = site?.pages[path] ?? site?.pages["home"];
-  if (!site) return  <div>Site not found!</div>;
+  if (!page) return <div>Page not found!</div>;
+
+  // Pass site and page to SiteRenderer component
   return <SiteRenderer sitee={site} page={page} />;
 }

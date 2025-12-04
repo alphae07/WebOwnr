@@ -1,5 +1,5 @@
 // app/(sites)/[site]/[...catchall]/page.tsx
-import { getSiteBySlug } from "@/lib/getSiteData";
+import { getSiteBySlug } from "@/lib/getSiteData"; // keep in lib
 import { renderSite } from "@/lib/render";
 import { ReactNode } from "react";
 
@@ -14,26 +14,11 @@ interface PageProps {
   params: SitePageParams;
 }
 
-// Define the type of your site data (adjust according to your getSiteBySlug return)
-interface Site {
-  id: string;
-  slug: string;
-  name: string;
-  content: any; // Adjust based on your site's content structure
-}
-
-// Fully typed getSiteBySlug (example)
-export async function getSiteBySlugTyped(slug: string): Promise<Site | null> {
-  const site = await getSiteBySlug(slug);
-  return site ?? null;
-}
-
-// The Page component itself
 export default async function Page({ params }: PageProps): Promise<ReactNode> {
   const { site, catchall } = params;
 
-  // Fetch site data
-  const siteData = await getSiteBySlugTyped(site);
+  // Fetch site data using helper from lib
+  const siteData = await getSiteBySlug(site);
 
   if (!siteData) {
     return <div>Site not found</div>;

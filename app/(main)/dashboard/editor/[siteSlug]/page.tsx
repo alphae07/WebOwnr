@@ -7,7 +7,14 @@ import { db } from "@/firebase/firebaseConfig";
 import type { SiteContent, SiteDoc } from "@/components/SiteRenderer";
 import Link from "next/link";
 
-export default function EditorPage({ params }: { params: { siteSlug: string } }) {
+interface EditorPageProps {
+  params: {
+    siteSlug: string;
+  };
+}
+
+export default function EditorPage({ params }: EditorPageProps) {
+
   const { siteSlug } = params;
 
   const [site, setSite] = useState<SiteDoc | null>(null);

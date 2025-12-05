@@ -3,53 +3,73 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Store, Shirt, Coffee, Laptop, Palette, Flower2 } from "lucide-react";
+import templateFashion from "@/public/template-fashion.png";
+import templateFood from "@/public/template-food.png";
+import templateTech from "@/public/template-tech.png";
+import Image from "next/image";
 
 const TemplatesSection = () => {
   const templates = [
     {
       name: "Fashion & Apparel",
       icon: Shirt,
-      color: "bg-pink-100 text-pink-600",
+      color: "bg-coral-light text-coral",
+      hoverBg: "group-hover:bg-coral group-hover:text-primary-foreground",
       stores: "320+ stores",
     },
     {
       name: "Food & Beverages",
       icon: Coffee,
-      color: "bg-amber-100 text-amber-600",
+      color: "bg-gold-light text-gold-dark",
+      hoverBg: "group-hover:bg-gold group-hover:text-primary-foreground",
       stores: "280+ stores",
     },
     {
       name: "Electronics",
       icon: Laptop,
-      color: "bg-blue-100 text-blue-600",
+      color: "bg-indigo-light text-indigo",
+      hoverBg: "group-hover:bg-indigo group-hover:text-primary-foreground",
       stores: "190+ stores",
     },
     {
       name: "Art & Crafts",
       icon: Palette,
-      color: "bg-purple-100 text-purple-600",
+      color: "bg-purple-light text-purple",
+      hoverBg: "group-hover:bg-purple group-hover:text-primary-foreground",
       stores: "240+ stores",
     },
     {
       name: "Beauty & Wellness",
       icon: Flower2,
-      color: "bg-green-100 text-green-600",
+      color: "bg-teal-light text-teal",
+      hoverBg: "group-hover:bg-teal group-hover:text-primary-foreground",
       stores: "310+ stores",
     },
     {
       name: "General Store",
       icon: Store,
-      color: "bg-cyan-100 text-cyan-600",
+      color: "bg-cyan-light text-cyan",
+      hoverBg: "group-hover:bg-cyan group-hover:text-primary-foreground",
       stores: "450+ stores",
     },
   ];
 
+  const templatePreviews = [
+    { name: "Fashion Store", image: templateFashion, tag: "Popular" },
+    { name: "Food Delivery", image: templateFood, tag: "New" },
+    { name: "Tech Shop", image: templateTech, tag: "Trending" },
+  ];
+
   return (
-    <section id="templates" className="py-24 bg-muted/30">
-      <div className="container mx-auto px-4">
+    <section id="templates" className="py-24 bg-muted/30 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-gold/5 to-transparent rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-purple/5 to-transparent rounded-full blur-3xl" />
+
+      <div className="container mx-auto px-4 relative">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="inline-block px-4 py-1.5 bg-accent rounded-full text-sm font-medium text-accent-foreground mb-4">
+          <span className="inline-block px-4 py-1.5 bg-gradient-to-r from-purple/10 to-indigo/10 border border-purple/20 rounded-full text-sm font-medium text-purple mb-4">
             Templates
           </span>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -68,7 +88,7 @@ const TemplatesSection = () => {
               className="group p-6 bg-card rounded-2xl border border-border shadow-card hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer text-center"
             >
               <div
-                className={`w-14 h-14 rounded-xl ${template.color} flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform`}
+                className={`w-14 h-14 rounded-xl ${template.color} ${template.hoverBg} flex items-center justify-center mx-auto mb-4 transition-all duration-300`}
               >
                 <template.icon className="w-7 h-7" />
               </div>
@@ -82,58 +102,50 @@ const TemplatesSection = () => {
           ))}
         </div>
 
-        {/* Template Preview */}
-        <div className="relative rounded-2xl overflow-hidden bg-card border border-border shadow-xl">
-          <div className="bg-muted px-4 py-3 flex items-center gap-2 border-b border-border">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-destructive/60" />
-              <div className="w-3 h-3 rounded-full bg-warning/60" />
-              <div className="w-3 h-3 rounded-full bg-success/60" />
-            </div>
-            <div className="flex-1 flex justify-center">
-              <div className="px-4 py-1 bg-background rounded-md text-xs text-muted-foreground">
-                preview.webownr.com/fashion-template
+        {/* Template Previews Grid */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          {templatePreviews.map((template, index) => (
+            <div
+              key={index}
+              className="group relative rounded-2xl overflow-hidden bg-card border border-border shadow-card hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+            >
+              {/* Tag */}
+              <div className={`absolute top-4 left-4 z-10 px-3 py-1 rounded-full text-xs font-medium ${
+                template.tag === "Popular" ? "bg-coral text-primary-foreground" :
+                template.tag === "New" ? "bg-teal text-primary-foreground" :
+                "bg-purple text-primary-foreground"
+              }`}>
+                {template.tag}
               </div>
-            </div>
-          </div>
-          <div className="aspect-[16/9] md:aspect-[21/9] bg-gradient-to-br from-muted to-background p-8">
-            {/* Mock fashion store preview */}
-            <div className="h-full max-w-5xl mx-auto flex flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-8">
-                <div className="h-8 w-28 bg-foreground/10 rounded-lg" />
-                <div className="hidden md:flex gap-4">
-                  <div className="h-6 w-16 bg-muted rounded" />
-                  <div className="h-6 w-16 bg-muted rounded" />
-                  <div className="h-6 w-16 bg-muted rounded" />
-                </div>
-                <div className="h-8 w-8 bg-primary/20 rounded-full" />
+
+              {/* Image */}
+              <div className="aspect-[4/3] overflow-hidden">
+                <Image
+                  src={template.image}
+                  alt={template.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
-              
-              {/* Hero */}
-              <div className="flex-1 grid md:grid-cols-2 gap-8 items-center">
-                <div>
-                  <div className="h-8 w-3/4 bg-foreground/10 rounded-lg mb-4" />
-                  <div className="h-4 w-full bg-muted rounded mb-2" />
-                  <div className="h-4 w-2/3 bg-muted rounded mb-6" />
-                  <div className="h-10 w-32 bg-primary rounded-lg" />
-                </div>
-                <div className="hidden md:grid grid-cols-2 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="aspect-square bg-muted rounded-xl" />
-                  ))}
+
+              {/* Overlay on hover */}
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+                <div className="w-full">
+                  <h3 className="text-lg font-semibold text-primary-foreground mb-2">{template.name}</h3>
+                  <Button variant="hero-white" size="sm" className="w-full">
+                    Preview Template
+                  </Button>
                 </div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-12">
+        <div className="text-center">
           <Link href="/signup">
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" className="group">
               Browse All Templates
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </Link>
         </div>

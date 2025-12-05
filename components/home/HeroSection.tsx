@@ -12,7 +12,7 @@ const HeroSection = () => {
   ];
 
   return (
-    <section className="relative min-h-screen pt-24 pb-16 overflow-hidden bg-mesh">
+    <section className="relative min-h-screen pt-24 pb-16 overflow-hidden gradient-coral">
       {/* Background decorations */}
       <div className="absolute top-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
       <div className="absolute bottom-20 left-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
@@ -59,8 +59,8 @@ const HeroSection = () => {
             <div className="flex flex-wrap items-center gap-6 animate-fade-up" style={{ animationDelay: "0.4s" }}>
               {highlights.map((item, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">{item}</span>
+                  <CheckCircle2 className="w-4 h-4 text-teal" />
+                  <span className="text-sm text-teal">{item}</span>
                 </div>
               ))}
             </div>
@@ -107,10 +107,10 @@ const HeroSection = () => {
               </div>
 
               {/* Floating cards */}
-              <div className="absolute -left-4 top-1/4 bg-card rounded-xl p-4 shadow-lg border border-border animate-fade-in" style={{ animationDelay: "0.6s" }}>
+              <div className="absolute -left-4 top-1/4 bg-card/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-border animate-fade-in" style={{ animationDelay: "0.6s" }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-success" />
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-teal-dark flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">New Order!</p>
@@ -119,10 +119,10 @@ const HeroSection = () => {
                 </div>
               </div>
 
-              <div className="absolute -right-4 bottom-1/4 bg-card rounded-xl p-4 shadow-lg border border-border animate-fade-in" style={{ animationDelay: "0.8s" }}>
+              <div className="absolute -right-4 bottom-1/4 bg-card/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-border animate-fade-in" style={{ animationDelay: "0.8s" }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-primary" />
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple to-indigo flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">AI Assistant</p>
@@ -130,6 +130,21 @@ const HeroSection = () => {
                   </div>
                 </div>
               </div>
+
+               <div className="absolute -bottom-4 left-1/4 bg-card/95 backdrop-blur-sm rounded-xl px-5 py-3 shadow-lg border border-border animate-fade-in" style={{ animationDelay: "1s" }}>
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-coral">+147%</p>
+                    <p className="text-xs text-muted-foreground">Sales</p>
+                  </div>
+                  <div className="w-px h-8 bg-border" />
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-teal">2.4k</p>
+                    <p className="text-xs text-muted-foreground">Orders</p>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>

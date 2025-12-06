@@ -322,7 +322,7 @@ const Onboarding = () => {
       paymentFrequency: formData.paymentFrequency,
       paymentReference: formData.paymentReference,
       logo,
-      subdomain: `${subdomain}.webownr.com`,
+      subdomain: `${subdomain}`,
       createdAt: new Date().toISOString(),
     });
 

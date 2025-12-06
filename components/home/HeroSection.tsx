@@ -59,8 +59,8 @@ const HeroSection = () => {
             <div className="flex flex-wrap items-center gap-6 animate-fade-up" style={{ animationDelay: "0.4s" }}>
               {highlights.map((item, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-teal" />
-                  <span className="text-sm text-teal">{item}</span>
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-primary">{item}</span>
                 </div>
               ))}
             </div>

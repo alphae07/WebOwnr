@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-
+import { collection, getDocs } from "firebase/firestore";
+import { usePathname } from "next/navigation";
 import { auth, db } from "@/firebase/firebaseConfig";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,10 +38,10 @@ import {
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
   const [siteData, setSiteData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
+  const pathname = usePathname();
+  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -48,18 +49,18 @@ const Dashboard = () => {
         return;
       }
 
-      setUserId(user.uid);
-
       try {
-        const siteRef = doc(db, "sites", user.uid);
-        const siteSnap = await getDoc(siteRef);
+        const querySnapshot = await getDocs(collection(db, "sites"));
+        const userSite = querySnapshot.docs.find(
+          (doc) => doc.data().uid === user.uid
+        );
 
-        if (!siteSnap.exists()) {
+        if (!userSite) {
           router.push("/onboarding");
           return;
         }
 
-        setSiteData(siteSnap.data());
+        setSiteData(userSite.data());
       } catch (error) {
         console.error("Error fetching site:", error);
       } finally {
@@ -78,10 +79,10 @@ const Dashboard = () => {
     return <div className="p-10 text-center text-red-600">No site data found.</div>;
   }
 
-  const siteLink = `https://${siteData.subdomain}.webownr.com`;
+  const siteLink = `https://${siteData.subdomain}`;
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", active: true },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: ShoppingBag, label: "Products", href: "/dashboard/products" },
     { icon: Package, label: "Orders", href: "/dashboard/orders", badge: 3 },
     { icon: Image, label: "Media", href: "/dashboard/media" },
@@ -159,26 +160,29 @@ const Dashboard = () => {
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative",
-                  item.active
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-                {item.badge && (
-                  <span className="absolute right-3 px-2 py-0.5 bg-primary text-primary-foreground text-xs rounded-full">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative",
+                    isActive
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
+                  {item.badge && (
+                    <span className="absolute right-3 px-2 py-0.5 bg-primary text-primary-foreground text-xs rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* PWA Card */}
@@ -209,7 +213,13 @@ const Dashboard = () => {
                 <p className="font-medium text-foreground text-sm truncate">John Doe</p>
                 <p className="text-xs text-muted-foreground truncate">john@example.com</p>
               </div>
-              <button className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground">
+              <button
+                onClick={async () => {
+                  await signOut(auth);
+                  router.push("/login");
+                }}
+                className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground"
+              >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>

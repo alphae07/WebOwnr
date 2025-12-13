@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebaseConfig";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,9 +25,34 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
+// Define proper TypeScript interfaces
+interface Order {
+  id: string;
+  siteId: string;
+  amount: number | string;
+  status: string;
+  customerId?: string;
+  customerEmail?: string;
+  customerName?: string;
+  productName?: string;
+  orderId?: string;
+  createdAt?: Timestamp | { toDate: () => Date };
+  [key: string]: any;
+}
+
+interface SiteData {
+  id: string;
+  uid: string;
+  visitors?: number;
+  totalVisitors?: number;
+  installmentsPaid?: number;
+  totalInstallments?: number;
+  [key: string]: any;
+}
+
 const Dashboard = () => {
   const router = useRouter();
-  const [siteData, setSiteData] = useState<any>(null);
+  const [siteData, setSiteData] = useState<SiteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     revenue: 0,
@@ -35,7 +60,7 @@ const Dashboard = () => {
     visitors: 0,
     customers: 0,
   });
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [statsChanges, setStatsChanges] = useState({
     revenue: { change: "+0%", trend: "up" as "up" | "down" },
     orders: { change: "+0%", trend: "up" as "up" | "down" },
@@ -44,7 +69,7 @@ const Dashboard = () => {
   });
 
   // Fetch orders data
-  const fetchOrders = async (siteId: string) => {
+  const fetchOrders = async (siteId: string): Promise<Order[]> => {
     try {
       const ordersRef = collection(db, "orders");
       const q = query(
@@ -56,7 +81,7 @@ const Dashboard = () => {
       const orders = ordersSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-      }));
+      })) as Order[];
 
       return orders;
     } catch (error) {
@@ -68,7 +93,7 @@ const Dashboard = () => {
         const orders = ordersSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })) as Order[];
         return orders;
       } catch (fallbackError) {
         console.error("Fallback fetch also failed:", fallbackError);
@@ -78,12 +103,12 @@ const Dashboard = () => {
   };
 
   // Calculate statistics
-  const calculateStats = (orders: any[]) => {
+  const calculateStats = (orders: Order[]) => {
     const totalRevenue = orders.reduce((sum, order) => {
       const amount =
         typeof order.amount === "number"
           ? order.amount
-          : parseFloat(order.amount) || 0;
+          : parseFloat(order.amount as string) || 0;
       return sum + amount;
     }, 0);
 
@@ -154,7 +179,7 @@ const Dashboard = () => {
           return;
         }
 
-        const siteInfo = { id: userSite.id, ...userSite.data() };
+        const siteInfo: SiteData = { id: userSite.id, ...userSite.data() } as SiteData;
         setSiteData(siteInfo);
 
         const orders = await fetchOrders(userSite.id);
@@ -350,7 +375,7 @@ const Dashboard = () => {
                       {(
                         typeof order.amount === "number"
                           ? order.amount
-                          : parseFloat(order.amount) || 0
+                          : parseFloat(order.amount as string) || 0
                       ).toFixed(2)}
                     </span>
                   </div>

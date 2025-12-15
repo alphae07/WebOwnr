@@ -45,7 +45,17 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex">
+      {/* Left Panel */}
+      <div className="hidden overflow-hidden flex-1 flex items-center justify-center p-8 relative bg-gradient-to-br from-primary via-teal to-primary">
+	 <div className="relative z-10 text-center max-w-md">
+          <h2 className="text-3xl font-bold text-primary-foreground mb-4">
+            Build Your Dream Store
+          </h2>
+        </div>
+	</div>
+	{/* Right Panel */}
+      <div className="flex-1 flex items-center justify-center items-center justify-center p-6 relative">
       <div className="max-w-md w-full">
         
         <h1 className="text-3xl font-bold mb-6">Create your account</h1>
@@ -59,6 +69,7 @@ const Signup = () => {
               type="text"
               placeholder="John Doe"
               value={name}
+		className="pl-10 h-12"
               onChange={(e) => setName(e.target.value)}
               required
             />
@@ -70,6 +81,7 @@ const Signup = () => {
               type="email"
               placeholder="you@example.com"
               value={email}
+		className="pl-10 h-12"
               onChange={(e) => setEmail(e.target.value)}
               required
             />
@@ -84,7 +96,7 @@ const Signup = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="pr-10"
+                className="pl-10 h-12"
               />
               <button
                 type="button"
@@ -107,7 +119,7 @@ const Signup = () => {
             </Label>
           </div>
 
-          <Button type="submit" className="w-full" disabled={!agreeTerms || loading}>
+          <Button type="submit" size="xl" className="w-full group" disabled={!agreeTerms || loading}>
             {loading ? "Creating account..." : "Create account"}
             <ArrowRight className="ml-2 w-4 h-4" />
           </Button>
@@ -118,6 +130,7 @@ const Signup = () => {
           <Link href="/login" className="text-primary underline">Sign in</Link>
         </p>
       </div>
+</div>
     </div>
   );
 };

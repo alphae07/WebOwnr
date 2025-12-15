@@ -31,7 +31,7 @@ import {
   Check,
 } from "lucide-react";
 
-const Settings = () => {
+const SettingsPage = () => {
  const [activeTab, setActiveTab] = useState("profile");
   const [saved, setSaved] = useState(false);
 
@@ -345,4 +345,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default SettingsPage;

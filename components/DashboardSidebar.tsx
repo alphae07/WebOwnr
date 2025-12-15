@@ -69,24 +69,34 @@ useEffect(() => {
         // Fetch site data
         const querySnapshot = await getDocs(collection(db, "sites"));
         const userSite = querySnapshot.docs.find(
-          (doc) => doc.data().uid === user.uid
-        );
+  (doc) => doc.data().uid === user.uid
+);
 
+if (!userSite) {
+  console.warn("No site found for user:", user.uid);
+  setSiteData(null);
+  setOrderCount(0);
+  return;
+}
 
+const siteInfo = {
+  id: userSite.id,
+  ...userSite.data(),
+};
 
-        const siteInfo = { id: userSite.id, ...userSite.data() };
-        setSiteData(siteInfo);
+setSiteData(siteInfo);
 
-        // Fetch order count for badge
-        try {
-          const ordersSnapshot = await getDocs(collection(db, "orders"));
-          const userOrders = ordersSnapshot.docs.filter(
-            (doc) => doc.data().siteId === userSite.id
-          );
-          setOrderCount(userOrders.length);
-        } catch (error) {
-          console.error("Error fetching orders count:", error);
-        }
+// Fetch order count for badge
+try {
+  const ordersSnapshot = await getDocs(collection(db, "orders"));
+  const userOrders = ordersSnapshot.docs.filter(
+    (doc) => doc.data().siteId === userSite.id
+  );
+  setOrderCount(userOrders.length);
+} catch (error) {
+  console.error("Error fetching orders count:", error);
+}
+
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {

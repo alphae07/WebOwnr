@@ -16,6 +16,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import {
   LayoutDashboard,
   ShoppingBag,
+  Wallet,
   Package,
   Settings,
   BarChart3,
@@ -31,6 +32,8 @@ import {
   Zap,
   Plus,
   ExternalLink,
+  Link2,
+  MessageSquare,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -311,7 +314,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </Button>
 			: pathname === "/dashboard/addproduct"
                     ? 
-              <Button onClick={handleSubmit}>Save Product</Button>
+              <Button>Save Product</Button>
             
                     : "Dashboard"}
 

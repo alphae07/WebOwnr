@@ -94,7 +94,7 @@ const AddProduct = () => {
   }, [router]);
 
  // Handle image upload with Cloudinary
-  const handleImageUpload = async (e: React.ChangeEvent) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 

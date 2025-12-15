@@ -8,7 +8,7 @@ import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/
 import { auth, db } from "@/firebase/firebaseConfig";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 import {
   Package,

@@ -1,4 +1,6 @@
 // lib/renderSite.tsx
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import React, { ReactNode } from "react";
 import SiteRenderer from "@/components/SiteRenderer";
 import { SiteData, PageData } from "@/lib/data";
@@ -10,11 +12,48 @@ import { SiteData, PageData } from "@/lib/data";
  * @returns ReactNode for rendering
  */
 export function renderSite(site: SiteData | null, path: string): ReactNode {
-  if (!site) return <div>Site not found!</div>;
+  if (!site)  return <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-4xl font-semibold text-foreground mb-4">
+          Site Not Found
+        </h1>
+        <p className="text-sm text-muted-foreground mb-6">
+          This website hasn’t been created yet or is no longer available.
+        </p>
+
+        <div className="flex gap-3 justify-center">
+          <Link href="/">
+            <Button>Go Home</Button>
+          </Link>
+
+          <Link href="/dashboard">
+            <Button variant="outline">
+              Dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
 
   const page: PageData | undefined = site.pages[path] ?? site.pages["home"];
 
-  if (!page) return <div>Page not found!</div>;
+  if (!page) return <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-6xl font-bold text-foreground mb-4">404</h1>
+        <p className="text-lg text-muted-foreground mb-2">
+          Page not found
+        </p>
+        <p className="text-sm text-muted-foreground mb-6">
+          The page you’re looking for doesn’t exist or has been moved.
+        </p>
+
+        <Link href="/">
+          <Button className="w-full">
+            Return to Home
+          </Button>
+        </Link>
+      </div>
+    </div>;
 
   // Pass site and page to SiteRenderer component
   return <SiteRenderer sitee={site} page={page} />;

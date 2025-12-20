@@ -1,4 +1,4 @@
-"use client";
+"use client"; 
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -457,7 +457,7 @@ const Products = () => {
         </div>
 
         {/* Products Table */}
-        <div className="bg-card rounded-2xl border border-border overflow-hidden">
+        <div className="bg-card max-w-sm  md:max-w-md lg:max-w-full rounded-2xl border border-border overflow-hidden ">
           {filteredProducts.length === 0 ? (
             <div className="p-12 text-center">
               <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -483,7 +483,7 @@ const Products = () => {
               <table className="w-full">
                 <thead className="bg-muted border-b border-border">
                   <tr>
-                    <th className="px-6 py-4">
+                    <th className="px-4 py-4">
                       <input
                         type="checkbox"
                         checked={
@@ -494,7 +494,7 @@ const Products = () => {
                         className="w-4 h-4 rounded border-border"
                       />
                     </th>
-                    <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left pl-3 py-4 pr-20 text-sm font-medium text-muted-foreground">
                       Product
                     </th>
                     <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">
@@ -520,7 +520,7 @@ const Products = () => {
                       key={product.id}
                       className="hover:bg-muted/50 transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-4">
                         <input
                           type="checkbox"
                           checked={selectedProducts.has(product.id)}
@@ -528,7 +528,7 @@ const Products = () => {
                           className="w-4 h-4 rounded border-border"
                         />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="pl-3 pr-3 py-4">
                         <div className="flex items-center gap-3">
                           <img
                             src={
@@ -543,23 +543,23 @@ const Products = () => {
                                 "https://images.unsplash.com/photo-1560393464-5c69a73c5770?w=100&h=100&fit=crop";
                             }}
                           />
-                          <span className="font-medium text-foreground">
+                          <span className="font-medium scroll-smooth whitespace-nowrap text-foreground">
                             {product.name}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-muted-foreground">
+                      <td className="px-6 py-4 scroll-smooth whitespace-nowrap text-muted-foreground">
                         {product.category}
                       </td>
-                      <td className="px-6 py-4 font-medium text-foreground">
+                      <td className="px-6 scroll-smooth whitespace-nowrap py-4 font-medium text-foreground">
                         {typeof product.price === "number"
                           ? `$${product.price.toFixed(2)}`
                           : product.price}
                       </td>
-                      <td className="px-6 py-4 text-muted-foreground">
+                      <td className="px-6 scroll-smooth whitespace-nowrap py-4 text-muted-foreground">
                         {product.stock}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 scroll-smooth whitespace-nowrap">
                         <span
                           className={cn(
                             "px-2.5 py-1 text-xs rounded-full font-medium",

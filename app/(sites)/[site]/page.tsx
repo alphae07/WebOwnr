@@ -33,5 +33,6 @@ export default async function SitePage(props: { params: ParamsPromise }) {
 
   const pageData = await getPageData(siteData, "home");
 
-  return <SiteRenderer sitee={siteData} page={pageData} />;
+  const safe = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
+  return <SiteRenderer sitee={safe(siteData)} page={safe(pageData)} />;
 }

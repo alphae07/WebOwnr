@@ -1,9 +1,9 @@
-// templates/elegantBrand.tsx
+// templates/minimal/page.tsx
 "use client";
 
 import Link from "next/link";
 
-export default function ElegantBrand({ data }: { data: any }) {
+export default function Minimal({ data }: { data: any }) {
   return (
     <div className="font-serif">
       <header className="bg-white shadow-md p-6">

@@ -1,37 +1,53 @@
-import ModernStartup from "@/templates/modernStartup";
-import SimpleBusiness from "@/templates/simpleBusiness";
-import ElegantBrand from "@/templates/elegantBrand";
-import { ReactNode } from "react";
+import ModernTemplate from "@/templates/modern/page";
+import ClassicTemplate from "@/templates/classic/page";
+import MinimalTemplate from "@/templates/minimal/page";
+import BoldTemplate from "@/templates/bold/page";
+import { ComponentType } from "react";
 
-type TemplateEntry = {
+export type TemplateId =
+  | "modern"
+  | "classic"
+  | "minimal"
+  | "bold";
+
+export type TemplateEntry = {
+  id: TemplateId;
   name: string;
-  id: "modernStartup" | "simpleBusiness" | "elegantBrand";
   preview: string;
   description: string;
-  // Each template is a React component that accepts `{ data }`
-  component:  React.ComponentType<{ data: any }>;
+  component: ComponentType<{ data: any }>;
 };
 
-export const templates: Record<TemplateEntry["id"], TemplateEntry> = {
-  modernStartup: {
-    id: "modernStartup",
-    name: "Modern Startup",
-    preview: "/templates/modernStartup-preview.png",
-    description: "Bold, modern look for startups and creators.",
-    component: ModernStartup,
+export const templates: Record<TemplateId, TemplateEntry> = {
+  modern: {
+    id: "modern",
+    name: "Modern",
+    preview: "/templates/modern-preview.png",
+    description: "Sleek, modern layout for startups and tech-driven brands.",
+    component: ModernTemplate,
   },
-  simpleBusiness: {
-    id: "simpleBusiness",
-    name: "Simple Business",
-    preview: "/templates/simpleBusiness-preview.png",
-    description: "Clean and professional—great for services and SMBs.",
-    component: SimpleBusiness,
+
+  classic: {
+    id: "classic",
+    name: "Classic",
+    preview: "/templates/classic-preview.png",
+    description: "Timeless structure perfect for businesses and services.",
+    component: ClassicTemplate,
   },
-  elegantBrand: {
-    id: "elegantBrand",
-    name: "Elegant Brand",
-    preview: "/templates/elegantBrand-preview.png",
-    description: "Premium feel—great for brands and product sites.",
-    component: ElegantBrand,
+
+  minimal: {
+    id: "minimal",
+    name: "Minimal",
+    preview: "/templates/minimal-preview.png",
+    description: "Clean, distraction-free design focused on content.",
+    component: MinimalTemplate,
+  },
+
+  bold: {
+    id: "bold",
+    name: "Bold",
+    preview: "/templates/bold-preview.png",
+    description: "High-impact visuals for confident brands and creators.",
+    component: BoldTemplate,
   },
 };

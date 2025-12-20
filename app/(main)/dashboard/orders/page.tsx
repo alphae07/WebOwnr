@@ -1,117 +1,237 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  Timestamp,
+} from "firebase/firestore";
+import { auth, db } from "@/firebase/firebaseConfig";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
-  LayoutDashboard,
-  ShoppingBag,
-  Package,
-  Settings,
-  BarChart3,
-  Image,
-  Sparkles,
-  Smartphone,
-  Bell,
-  LogOut,
-  Menu,
-  X,
   Search,
   Filter,
   Eye,
   MessageSquare,
-  ChevronDown,
+  Package,
 } from "lucide-react";
 
+interface Order {
+  id: string;
+  siteId: string;
+  orderId?: string;
+  customerId?: string;
+  customerEmail?: string;
+  customerName?: string;
+  productName?: string;
+  products?: string[];
+  amount: number;
+  status: string;
+  paymentStatus?: string;
+  createdAt?: Timestamp | { toDate: () => Date };
+  [key: string]: any;
+}
+
+interface SiteData {
+  id: string;
+  uid: string;
+  [key: string]: any;
+}
+
 const Orders = () => {
-
+  const router = useRouter();
+  const [siteData, setSiteData] = useState<SiteData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // Fetch orders from Firebase
+  const fetchOrders = async (siteId: string) => {
+    try {
+      const ordersRef = collection(db, "orders");
+      const q = query(
+        ordersRef,
+        where("siteId", "==", siteId),
+        orderBy("createdAt", "desc")
+      );
+      const ordersSnapshot = await getDocs(q);
+      const ordersData = ordersSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Order[];
+
+      setOrders(ordersData);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      // Fallback without orderBy if index doesn't exist
+      try {
+        const ordersRef = collection(db, "orders");
+        const q = query(ordersRef, where("siteId", "==", siteId));
+        const ordersSnapshot = await getDocs(q);
+        const ordersData = ordersSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Order[];
+        setOrders(ordersData);
+      } catch (fallbackError) {
+        console.error("Fallback fetch also failed:", fallbackError);
+      }
+    }
+  };
+
+  // Auth and data fetching
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      try {
+        const querySnapshot = await getDocs(collection(db, "sites"));
+        const userSite = querySnapshot.docs.find(
+          (doc) => doc.data().uid === user.uid
+        );
+
+        if (!userSite) {
+          router.push("/onboarding");
+          return;
+        }
+
+        const siteInfo: SiteData = {
+          id: userSite.id,
+          ...userSite.data(),
+        } as SiteData;
+        setSiteData(siteInfo);
+
+        await fetchOrders(userSite.id);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  // Calculate tab counts
+  const getTabCounts = () => {
+    const all = orders.length;
+    const pending = orders.filter(
+      (o) => o.status === "Pending" || o.status === "pending"
+    ).length;
+    const processing = orders.filter(
+      (o) => o.status === "Processing" || o.status === "processing"
+    ).length;
+    const shipped = orders.filter(
+      (o) => o.status === "Shipped" || o.status === "shipped"
+    ).length;
+    const delivered = orders.filter(
+      (o) => o.status === "Delivered" || o.status === "delivered" || o.status === "Completed" || o.status === "completed"
+    ).length;
+
+    return { all, pending, processing, shipped, delivered };
+  };
+
+  const tabCounts = getTabCounts();
 
   const tabs = [
-    { id: "all", label: "All Orders", count: 156 },
-    { id: "pending", label: "Pending", count: 12 },
-    { id: "processing", label: "Processing", count: 8 },
-    { id: "shipped", label: "Shipped", count: 24 },
-    { id: "delivered", label: "Delivered", count: 112 },
+    { id: "all", label: "All Orders", count: tabCounts.all },
+    { id: "pending", label: "Pending", count: tabCounts.pending },
+    { id: "processing", label: "Processing", count: tabCounts.processing },
+    { id: "shipped", label: "Shipped", count: tabCounts.shipped },
+    { id: "delivered", label: "Delivered", count: tabCounts.delivered },
   ];
 
-  const orders = [
-    {
-      id: "#ORD-1234",
-      customer: { name: "Sarah Chen", email: "sarah@example.com", avatar: "SC" },
-      products: ["Summer Floral Dress", "+2 items"],
-      total: "$287.00",
-      date: "Dec 5, 2024",
-      status: "Delivered",
-      payment: "Paid",
-    },
-    {
-      id: "#ORD-1233",
-      customer: { name: "Marcus Johnson", email: "marcus@example.com", avatar: "MJ" },
-      products: ["Wireless Bluetooth Earbuds"],
-      total: "$149.00",
-      date: "Dec 5, 2024",
-      status: "Shipped",
-      payment: "Paid",
-    },
-    {
-      id: "#ORD-1232",
-      customer: { name: "Emily Rodriguez", email: "emily@example.com", avatar: "ER" },
-      products: ["Handmade Soy Candle Set", "+1 item"],
-      total: "$89.00",
-      date: "Dec 4, 2024",
-      status: "Processing",
-      payment: "Paid",
-    },
-    {
-      id: "#ORD-1231",
-      customer: { name: "David Kim", email: "david@example.com", avatar: "DK" },
-      products: ["Organic Face Serum"],
-      total: "$65.00",
-      date: "Dec 4, 2024",
-      status: "Pending",
-      payment: "Pending",
-    },
-    {
-      id: "#ORD-1230",
-      customer: { name: "Lisa Thompson", email: "lisa@example.com", avatar: "LT" },
-      products: ["Minimalist Watch", "+3 items"],
-      total: "$456.00",
-      date: "Dec 3, 2024",
-      status: "Delivered",
-      payment: "Paid",
-    },
-  ];
+  // Filter orders by tab and search
+  const filteredOrders = orders.filter((order) => {
+    // Filter by tab
+    const matchesTab =
+      activeTab === "all" ||
+      order.status?.toLowerCase() === activeTab.toLowerCase() ||
+      (activeTab === "delivered" && (order.status?.toLowerCase() === "completed"));
 
-const [loading, setLoading] = useState(true);
+    // Filter by search
+    const matchesSearch =
+      order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customerEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.productName?.toLowerCase().includes(searchQuery.toLowerCase());
 
+    return matchesTab && matchesSearch;
+  });
 
+  // Format date
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "N/A";
+    const date =
+      timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
+  // Get customer initials
+  const getInitials = (name?: string) => {
+    if (!name) return "??";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full p-10">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-lg text-muted-foreground">Loading orders...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="flex-1 flex flex-col min-h-screen">
-       
         <main className="flex-1 p-4 lg:p-6 space-y-6">
+          
           {/* Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                  activeTab === tab.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card border border-border text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {tab.label}
-                <span className="ml-2 text-xs opacity-70">({tab.count})</span>
-              </button>
-            ))}
+          <div className="overflow-y-auto">
+            <div className="flex lg:flex-nowrap gap-2 max-w-sm md:max-w-md lg:max-w-full pb-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
+                    activeTab === tab.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {tab.label}
+                  <span className="ml-2 text-xs opacity-70">
+                    ({tab.count})
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Search & Filter */}
@@ -120,88 +240,159 @@ const [loading, setLoading] = useState(true);
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search orders..."
+                placeholder="Search orders by ID, customer, or product..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2 shrink-0">
               <Filter className="w-4 h-4" />
               Filters
             </Button>
           </div>
 
           {/* Orders Table */}
-          <div className="bg-card rounded-2xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted border-b border-border">
-                  <tr>
-                    <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Order</th>
-                    <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Customer</th>
-                    <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Products</th>
-                    <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Total</th>
-                    <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Date</th>
-                    <th className="text-left px-6 py-4 text-sm font-medium text-muted-foreground">Status</th>
-                    <th className="text-right px-6 py-4 text-sm font-medium text-muted-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-muted/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <span className="font-medium text-foreground">{order.id}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-xs font-medium text-primary">{order.customer.avatar}</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground text-sm">{order.customer.name}</p>
-                            <p className="text-xs text-muted-foreground">{order.customer.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-foreground">{order.products[0]}</p>
-                        {order.products[1] && (
-                          <p className="text-xs text-muted-foreground">{order.products[1]}</p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 font-medium text-foreground">{order.total}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-sm">{order.date}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={cn(
-                            "px-2.5 py-1 text-xs rounded-full font-medium",
-                            order.status === "Delivered"
-                              ? "bg-success/10 text-success"
-                              : order.status === "Shipped"
-                              ? "bg-primary/10 text-primary"
-                              : order.status === "Processing"
-                              ? "bg-purple/10 text-purple"
-                              : "bg-warning/10 text-warning"
-                          )}
-                        >
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-teal">
-                            <MessageSquare className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
+          <div className="bg-card md:max-w-md max-w-full sm:max-w-screen rounded-2xl border border-border overflow-hidden">
+            {filteredOrders.length === 0 ? (
+              <div className="p-12 text-center">
+                <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {searchQuery || activeTab !== "all"
+                    ? "No orders found"
+                    : "No orders yet"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {searchQuery || activeTab !== "all"
+                    ? "Try adjusting your search or filters"
+                    : "Orders will appear here once customers make purchases"}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                  <thead className="bg-muted border-b border-border">
+                    <tr>
+                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Order
+                      </th>
+                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Customer
+                      </th>
+                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Product
+                      </th>
+                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Total
+                      </th>
+                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Date
+                      </th>
+                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Status
+                      </th>
+                      <th className="text-right px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredOrders.map((order) => (
+                      <tr
+                        key={order.id}
+                        className="hover:bg-muted/50 transition-colors"
+                      >
+                        <td className="px-4 lg:px-6 py-4">
+                          <span className="font-medium text-foreground text-sm whitespace-nowrap">
+                            #{order.orderId || order.id.slice(0, 8)}
+                          </span>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <div className="flex items-center gap-3 min-w-[200px]">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                              <span className="text-xs font-medium text-primary">
+                                {getInitials(order.customerName)}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-foreground text-sm truncate">
+                                {order.customerName || "Unknown"}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {order.customerEmail || "No email"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <p className="text-sm text-foreground truncate max-w-[200px]">
+                            {order.productName || "Product"}
+                          </p>
+                          {order.products && order.products.length > 1 && (
+                            <p className="text-xs text-muted-foreground">
+                              +{order.products.length - 1} more
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 font-medium text-foreground whitespace-nowrap">
+                          ${order.amount.toFixed(2)}
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 text-muted-foreground text-sm whitespace-nowrap">
+                          {formatDate(order.createdAt)}
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <span
+                            className={cn(
+                              "px-2.5 py-1 text-xs rounded-full font-medium whitespace-nowrap inline-block",
+                              order.status === "Delivered" ||
+                                order.status === "delivered" ||
+                                order.status === "Completed" ||
+                                order.status === "completed"
+                                ? "bg-success/10 text-success"
+                                : order.status === "Shipped" ||
+                                  order.status === "shipped"
+                                ? "bg-primary/10 text-primary"
+                                : order.status === "Processing" ||
+                                  order.status === "processing"
+                                ? "bg-purple/10 text-purple"
+                                : "bg-warning/10 text-warning"
+                            )}
+                          >
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+                              title="View order"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-teal transition-colors"
+                              title="Message customer"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
+
+          {/* Mobile Scroll Hint */}
+          {filteredOrders.length > 0 && (
+            <div className="lg:hidden text-center">
+              <p className="text-xs text-muted-foreground">
+                ← Swipe to see more →
+              </p>
+            </div>
+          )}
         </main>
       </div>
     </DashboardLayout>

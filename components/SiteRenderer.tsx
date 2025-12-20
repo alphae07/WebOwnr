@@ -7,7 +7,7 @@ import { fetchSite } from "@/lib/data";
 import { templates } from "@/lib/templateConfig";
 import { SiteData, PageData } from "@/lib/data";
 
-export type TemplateKey = "modernStartup" | "simpleBusiness" | "elegantBrand";
+export type TemplateKey = "modern" | "classic" | "minimal" | "bold";
 
 export type SiteContent = {
   businessName?: string;
@@ -17,6 +17,8 @@ export type SiteContent = {
   color?: string;
   logoUrl?: string;
   niche?: string;
+  subdomain?: string;
+  siteId?: string;
 };
 
 export type SiteDoc = {
@@ -76,7 +78,7 @@ export default function SiteRenderer({
   const templateKey: TemplateKey =
     docData.template && templates[docData.template]
       ? docData.template
-      : "modernStartup";
+      : "modern";
   const TemplateComp = templates[templateKey].component as TemplateComponent;
 
   const content: SiteContent =
@@ -91,5 +93,7 @@ export default function SiteRenderer({
       niche: (docData as any).niche,
     };
 
+  content.subdomain = docData.subdomain;
+  (content as any).siteId = (docData as any).id;
   return <TemplateComp data={content} />;
 }

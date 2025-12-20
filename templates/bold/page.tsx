@@ -1,9 +1,9 @@
-// templates/simpleBusiness.tsx
+// templates/bold/page.tsx
 "use client";
 
 import Link from "next/link";
 
-export default function SimpleBusiness({ data }: { data: any }) {
+export default function Bold({ data }: { data: any }) {
   return (
     <div className="font-sans">
       <header className="p-6 shadow" style={{ backgroundColor: data?.color ?? '#f8fafc'}}>

@@ -1,7 +1,7 @@
 // lib/getSiteData.ts
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { SiteData, PageData } from "@/lib/data";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { SiteData, PageData, demoSite } from "@/lib/data";
 
 /**
  * Fetch a site by its slug (subdomain)
@@ -9,13 +9,28 @@ import { SiteData, PageData } from "@/lib/data";
  * @returns SiteData if found, otherwise null
  */
 export async function getSiteBySlug(slug: string): Promise<SiteData | null> {
-  const ref = doc(db, "sites", slug);
-  const snap = await getDoc(ref);
+  // Check demo first
+  if (demoSite[slug]) return demoSite[slug];
 
-  if (!snap.exists()) return null;
+  try {
+    const q = query(collection(db, "sites"), where("subdomain", "==", slug));
+    const snapshot = await getDocs(q);
 
-  // Type assertion ensures snap.data() matches SiteData
-  return snap.data() as SiteData;
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data();
+      return {
+        ...data,
+        // Ensure required fields exist
+        name: data.name || slug,
+        subdomain: data.subdomain || slug,
+        pages: data.pages || {},
+      } as SiteData;
+    }
+  } catch (error) {
+    console.error("Error fetching site by slug:", error);
+  }
+
+  return null;
 }
 
 /**

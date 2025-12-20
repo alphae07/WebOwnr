@@ -132,13 +132,12 @@ const navItems = [
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 lg:translate-x-0 lg:static",
+        "fixed inset-y-0 left-0 z-50 relative w-64 bg-card border-r border-border transform transition-transform duration-200 lg:translate-x-0 lg:static",
         open ? "translate-x-0" : "-translate-x-full"
       )}
     >
-      <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
+       {/* Header */}
+        <header className="p-4 border-b border-border bg-card flex items-center justify-between sticky absolute top-0 z-40">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold">W</span>
@@ -152,7 +151,9 @@ const navItems = [
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
+        </header>
+      <div className="flex flex-col h-full">
+       
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">

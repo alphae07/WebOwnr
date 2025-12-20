@@ -39,11 +39,12 @@ const isPremium = plan === "premium" || plan === "growth";
 
   const getRandomTemplateBasedOnNiche = (niche: string) => {
     const mapping: Record<string, string> = {
-      ecommerce: "modernStartup",
-      service: "simpleBusiness",
-      creator: "elegantBrand",
+      ecommerce: "modern",
+      service: "classic",
+      creator: "bold",
+      general: "minimal",
     };
-    return mapping[niche.toLowerCase()] || "simpleBusiness";
+    return mapping[niche.toLowerCase()] || "minimal";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

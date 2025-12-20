@@ -24,6 +24,8 @@ import {
 import { cn } from "@/lib/utils";
 
 type TemplateData = {
+  about?: string;
+  tagline?: string;
   businessName?: string;
   logoUrl?: string;
   subdomain?: string;

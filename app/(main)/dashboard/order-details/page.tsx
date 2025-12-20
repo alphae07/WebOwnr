@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -19,14 +19,27 @@ import {
 import { cn } from "@/lib/utils";
 
 interface OrderDetailProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 const OrderDetail = ({ params }: OrderDetailProps) => {
-  const { id } = params;
+  const [id, setId] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const p = await params;
+        if (mounted) setId(p?.id || "");
+      } catch {
+        if (mounted) setId("");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [params]);
 
   const order = {
     id: id || "WO-A1B2C3",

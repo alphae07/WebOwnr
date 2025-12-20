@@ -61,7 +61,7 @@ const Checkout = () => {
       <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link to="/storefront" className="flex items-center gap-2">
+            <Link href="/storefront" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
                 <span className="text-background font-bold">S</span>
               </div>

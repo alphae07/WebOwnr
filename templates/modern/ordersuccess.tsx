@@ -18,7 +18,7 @@ const OrderSuccess = () => {
       <header className="bg-card border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center h-16">
-            <Link to="/template/modern" className="flex items-center gap-2">
+            <Link href="/template/modern" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
                 <span className="text-background font-bold">S</span>
               </div>
@@ -100,7 +100,7 @@ const OrderSuccess = () => {
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="hero" size="lg" asChild>
-              <Link to="/template/modern">
+              <Link href="/template/modern">
                 Continue Shopping
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>

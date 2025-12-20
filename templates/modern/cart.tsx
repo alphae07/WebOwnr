@@ -1,5 +1,7 @@
+"use client";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useRouter } from "next/router";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -15,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const Cart = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [couponCode, setCouponCode] = useState("");
   const [cartItems, setCartItems] = useState([
     {
@@ -71,7 +73,7 @@ const Cart = () => {
       <header className="sticky top-0 z-50 bg-card border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link to="/storefront" className="flex items-center gap-2">
+            <Link href="/storefront" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
                 <span className="text-background font-bold">S</span>
               </div>
@@ -84,7 +86,7 @@ const Cart = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm mb-8">
-          <Link to="/storefront" className="text-muted-foreground hover:text-foreground">Home</Link>
+          <Link href="/storefront" className="text-muted-foreground hover:text-foreground">Home</Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
           <span className="text-foreground">Shopping Cart</span>
         </nav>
@@ -104,7 +106,7 @@ const Cart = () => {
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Your cart is empty</h2>
             <p className="text-muted-foreground mb-6">Looks like you haven't added any items yet.</p>
-            <Button variant="hero" onClick={() => navigate("/storefront")}>
+            <Button variant="hero" onClick={() => router.push("/storefront")}>
               Continue Shopping
             </Button>
           </div>
@@ -118,7 +120,7 @@ const Cart = () => {
                   className="flex gap-4 p-4 bg-card rounded-2xl border border-border"
                 >
                   <Link
-                    to="/storefront/product/1"
+                    href="/storefront/product/1"
                     className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-muted shrink-0"
                   >
                     <img
@@ -129,7 +131,7 @@ const Cart = () => {
                   </Link>
                   <div className="flex-1 min-w-0">
                     <Link
-                      to="/storefront/product/1"
+                      href="/storefront/product/1"
                       className="font-medium text-foreground hover:text-primary transition-colors line-clamp-2"
                     >
                       {item.name}
@@ -171,7 +173,7 @@ const Cart = () => {
               ))}
 
               <Link
-                to="/storefront"
+                href="/storefront"
                 className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -236,7 +238,7 @@ const Cart = () => {
                   variant="hero"
                   size="lg"
                   className="w-full"
-                  onClick={() => navigate("/storefront/checkout")}
+                  onClick={() => router.push("/storefront/checkout")}
                 >
                   Proceed to Checkout
                 </Button>

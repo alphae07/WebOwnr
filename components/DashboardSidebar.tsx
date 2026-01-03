@@ -132,17 +132,19 @@ const navItems = [
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 relative w-64 bg-card border-r border-border transform transition-transform duration-200 lg:translate-x-0 lg:static",
-        open ? "translate-x-0" : "-translate-x-full"
+        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 lg:translate-x-0 lg:static lg:pointer-events-auto",
+        open
+          ? "translate-x-0 pointer-events-auto"
+          : "-translate-x-full pointer-events-none lg:pointer-events-auto"
       )}
     >
        {/* Header */}
-        <header className="p-4 border-b border-border bg-card flex items-center justify-between sticky absolute top-0 z-40">
+        <header className="p-4 border-b border-border bg-card flex items-center justify-between sticky top-0 z-40">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold">W</span>
             </div>
-            <span className="font-bold text-foreground">WebOwnr</span>
+            <span className="font-bold text-foreground truncate">WebOwnr</span>
           </Link>
 
           <button
@@ -164,8 +166,9 @@ const navItems = [
               <Link
                 key={item.label}
                 href={item.href}
+                
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative",
+                  "flex items-center pointer gap-3 px-3 py-2.5 rounded-lg transition-colors relative",
                   isActive
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"

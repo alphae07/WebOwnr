@@ -125,28 +125,42 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           title="Dashboard"
           subtitle="Welcome back!"
           onMenuClick={() => setSidebarOpen(true)}
-          actions={<div className="flex items-center gap-2"><a
+          actions={
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <a
                 href="https://your-store.webownr.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                className="flex sm:hidden items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
               >
                 View Store
                 <ExternalLink className="w-4 h-4" />
-              </a><Button onClick={() => router.push('/dashboard/addproducts')}>
-	<Plus className="w-4 h-4" />
-                Add Product</Button>
-		</div>}
+              </a>
+              <Button
+                onClick={() => router.push('/dashboard/addproducts')}
+                className="flex-shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                Add Product
+              </Button>
+            </div>
+          }
         />
 
 	<div className="min-h-screen flex items-center justify-center bg-muted">
-        <div className="text-centerr">
+        <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-lg text-muted-foreground">Loading...</p>
         </div>
 	</div>
       </div>
-	</div>
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </div>
     );
   }
 
@@ -241,17 +255,24 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     : "Dashboard"}
           onMenuClick={() => setSidebarOpen(true)}
           actions={pathname === "/dashboard"
-                    ? <div className="flex items-center gap-2"><a
-                href="https://your-store.webownr.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-              >
-                View Store
-                <ExternalLink className="w-4 h-4" />
-              </a><Button onClick={() => router.push('/dashboard/addproducts')}><Plus className="w-4 h-4" />
-                Add Product</Button>
-		</div>
+                    ? <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        <a
+                          href="https://your-store.webownr.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex sm:hidden items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                        >
+                          View Store
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                        <Button
+                          onClick={() => router.push('/dashboard/addproducts')}
+                          className="flex-shrink-0"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Product
+                        </Button>
+                      </div>
                     : pathname === "/dashboard/products"
                     ? <Button onClick={() => router.push('/dashboard/addproducts')}><Plus className="w-4 h-4" />
                 Add Product</Button>
@@ -321,7 +342,66 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         />
 
         {/* Page Content */}
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 pb-16 lg:pb-0">{children}</main>
+
+        {/* Mobile Bottom Nav */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-40">
+          <div className="grid grid-cols-4">
+            <Link
+              href="/dashboard"
+              className={cn(
+                "flex flex-col items-center justify-center py-2 text-xs",
+                pathname === "/dashboard"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutDashboard className="w-5 h-5 mb-1" />
+              <span>Home</span>
+            </Link>
+            <Link
+              href="/dashboard/products"
+              className={cn(
+                "flex flex-col items-center justify-center py-2 text-xs",
+                pathname === "/dashboard/products"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <ShoppingBag className="w-5 h-5 mb-1" />
+              <span>Products</span>
+            </Link>
+            <Link
+              href="/dashboard/orders"
+              className={cn(
+                "flex flex-col items-center justify-center py-2 text-xs relative",
+                pathname === "/dashboard/orders"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Package className="w-5 h-5 mb-1" />
+              {orderCount > 0 && (
+                <span className="absolute top-1 right-6 px-1.5 py-0.5 bg-primary text-primary-foreground text-[10px] rounded-full">
+                  {orderCount}
+                </span>
+              )}
+              <span>Orders</span>
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              className={cn(
+                "flex flex-col items-center justify-center py-2 text-xs",
+                pathname === "/dashboard/settings"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Settings className="w-5 h-5 mb-1" />
+              <span>Settings</span>
+            </Link>
+          </div>
+        </nav>
       </div>
 
       {/* Mobile overlay */}

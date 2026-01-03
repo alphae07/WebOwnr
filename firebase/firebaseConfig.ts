@@ -13,8 +13,23 @@ const firebaseConfig = {
 };
 
 // Validate that all required config values are present
-if (!firebaseConfig.apiKey) {
-  console.error("Firebase API key is missing! Check your .env.local file.");
+const missing: string[] = [];
+Object.entries({
+  NEXT_PUBLIC_FIREBASE_API_KEY: firebaseConfig.apiKey,
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: firebaseConfig.authDomain,
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: firebaseConfig.projectId,
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: firebaseConfig.storageBucket,
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: firebaseConfig.messagingSenderId,
+  NEXT_PUBLIC_FIREBASE_APP_ID: firebaseConfig.appId,
+}).forEach(([key, value]) => {
+  if (!value) missing.push(key);
+});
+if (missing.length) {
+  console.error(
+    `Missing Firebase env vars: ${missing.join(
+      ", "
+    )}. Check your .env.local and ensure they are prefixed with NEXT_PUBLIC_.`
+  );
 }
 
 // Initialize Firebase (only once)

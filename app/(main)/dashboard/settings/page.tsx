@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,9 +19,7 @@ import {
   Loader2,
   Upload,
   Check,
-  X,
-  Smartphone,
-  Layout,
+  LogOut,
   Image,
   Save,
   Edit2,
@@ -162,7 +161,7 @@ const SettingsPage = () => {
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
   const fetchMediaFiles = async (siteId: string) => {
@@ -180,32 +179,38 @@ const SettingsPage = () => {
   const applyImage = async (url: string, type: "profile" | "logo" | "cover") => {
     if (!user) return;
 
-    if (type === "profile") {
-      await updateProfile(user, { photoURL: url });
-      setUserData(prev => ({ ...prev, photoURL: url }));
-      await updateDoc(doc(db, "users", user.uid), { photoURL: url });
-    } else if (type === "logo") {
-      setSiteData(prev => ({ ...prev, logo: url }));
-      if (siteData.id) {
-        await updateDoc(doc(db, "sites", siteData.id), { logo: url });
+    try {
+      if (type === "profile") {
+        await updateProfile(user, { photoURL: url });
+        setUserData(prev => ({ ...prev, photoURL: url }));
+        await updateDoc(doc(db, "users", user.uid), { photoURL: url });
+      } else if (type === "logo") {
+        setSiteData(prev => ({ ...prev, logo: url }));
+        if (siteData.id) {
+          await updateDoc(doc(db, "sites", siteData.id), { logo: url });
+        }
+      } else if (type === "cover") {
+        setSiteData(prev => ({ ...prev, coverImage: url }));
+        if (siteData.id) {
+          await updateDoc(doc(db, "sites", siteData.id), { coverImage: url });
+        }
       }
-    } else if (type === "cover") {
-      setSiteData(prev => ({ ...prev, coverImage: url }));
-      if (siteData.id) {
-        await updateDoc(doc(db, "sites", siteData.id), { coverImage: url });
-      }
+    } catch (error) {
+      console.error("Error applying image:", error);
+      showMessage("error", "Failed to apply image");
     }
   };
 
-  const handleSelectFromMedia = () => {
-    if (!selectedMediaId) return;
+  const handleSelectFromMedia = async () => {
+    if (!selectedMediaId || !mediaUploadType) return;
 
     const selectedMedia = mediaFiles.find(m => m.id === selectedMediaId);
-    if (!selectedMedia || !mediaUploadType) return;
+    if (!selectedMedia) return;
 
-    applyImage(selectedMedia.url, mediaUploadType);
+    await applyImage(selectedMedia.url, mediaUploadType);
     setShowMediaLibrary(false);
     setSelectedMediaId(null);
+    setMediaUploadType(null);
     showMessage("success", "Image selected successfully");
   };
 
@@ -223,10 +228,10 @@ const SettingsPage = () => {
 
   const fetchData = async (currentUser: FirebaseUser) => {
     try {
-      // Fetch User Data from Firestore (if extended profile exists)
+      // Fetch User Data from Firestore
       const userDocRef = doc(db, "users", currentUser.uid);
       const userDocSnap = await getDoc(userDocRef);
-      
+
       if (userDocSnap.exists()) {
         const data = userDocSnap.data();
         setUserData({
@@ -238,12 +243,11 @@ const SettingsPage = () => {
           birthday: data.birthday || "",
           photoURL: currentUser.photoURL || data.photoURL || "",
         });
-        
+
         if (data.notifications) {
           setNotificationSettings(data.notifications);
         }
       } else {
-        // Initialize with Auth data
         setUserData({
           firstName: currentUser.displayName?.split(" ")[0] || "",
           lastName: currentUser.displayName?.split(" ")[1] || "",
@@ -258,7 +262,7 @@ const SettingsPage = () => {
       // Fetch Site Data
       const sitesQuery = query(collection(db, "sites"), where("uid", "==", currentUser.uid));
       const sitesSnapshot = await getDocs(sitesQuery);
-      
+
       if (!sitesSnapshot.empty) {
         const siteDoc = sitesSnapshot.docs[0];
         const data = siteDoc.data();
@@ -277,14 +281,13 @@ const SettingsPage = () => {
           themeColor: data.themeColor || "#00BCD4",
           fontFamily: data.fontFamily || "Inter",
           darkMode: data.darkMode || false,
-          domain: data.domain || `${data.subdomain}.webownr.com`,
+          domain: data.domain || (data.subdomain ? `${data.subdomain}.webownr.com` : ""),
           customDomain: data.customDomain || "",
           paymentMethods: data.paymentMethods || [],
           storageUsed: data.storageUsed || 0,
-          storageLimit: data.storageLimit || 104857600, // 100MB
+          storageLimit: data.storageLimit || 104857600,
         });
-        
-        // Fetch media files
+
         await fetchMediaFiles(siteDoc.id);
       }
     } catch (error) {
@@ -303,13 +306,11 @@ const SettingsPage = () => {
   const handleFileUpload = async (file: File, type: "profile" | "logo" | "cover") => {
     if (!user || !siteData.id) return;
 
-    // Validate size
     if (file.size > MAX_FILE_SIZE) {
       showMessage("error", `File size must be less than ${formatFileSize(MAX_FILE_SIZE)}`);
       return;
     }
 
-    // Check storage limit
     if (siteData.storageUsed + file.size > siteData.storageLimit) {
       showMessage("error", `Upload exceeds storage limit. ${formatFileSize(siteData.storageLimit - siteData.storageUsed)} remaining.`);
       return;
@@ -317,7 +318,7 @@ const SettingsPage = () => {
 
     try {
       setUploading(type);
-      
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", type === "profile" ? "profiles" : "branding");
@@ -334,7 +335,6 @@ const SettingsPage = () => {
       const data = await response.json();
       const url = data.url;
 
-      // Save to media collection
       await addDoc(collection(db, "media"), {
         siteId: siteData.id,
         name: file.name,
@@ -345,22 +345,17 @@ const SettingsPage = () => {
         createdAt: serverTimestamp(),
       });
 
-      // Update storage usage
       const siteRef = doc(db, "sites", siteData.id);
       await updateDoc(siteRef, {
         storageUsed: increment(file.size),
       });
 
-      // Update local state
-      setSiteData({
-        ...siteData,
-        storageUsed: siteData.storageUsed + file.size,
-      });
+      setSiteData(prev => ({
+        ...prev,
+        storageUsed: prev.storageUsed + file.size,
+      }));
 
-      // Apply image
       await applyImage(url, type);
-
-      // Refresh media
       await fetchMediaFiles(siteData.id);
 
       showMessage("success", "Image uploaded successfully");
@@ -379,12 +374,12 @@ const SettingsPage = () => {
       await updateProfile(user, {
         displayName: `${userData.firstName} ${userData.lastName}`.trim()
       });
-      
+
       await setDoc(doc(db, "users", user.uid), {
         ...userData,
-        updatedAt: new Date()
+        updatedAt: serverTimestamp()
       }, { merge: true });
-      
+
       showMessage("success", "Profile updated successfully");
     } catch (error) {
       console.error("Save error:", error);
@@ -401,14 +396,14 @@ const SettingsPage = () => {
       if (siteData.id) {
         await updateDoc(doc(db, "sites", siteData.id), {
           ...siteData,
-          updatedAt: new Date()
+          updatedAt: serverTimestamp()
         });
       } else {
         const docRef = await addDoc(collection(db, "sites"), {
           ...siteData,
           uid: user.uid,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         });
         setSiteData(prev => ({ ...prev, id: docRef.id }));
       }
@@ -430,6 +425,7 @@ const SettingsPage = () => {
       }, { merge: true });
       showMessage("success", "Notification preferences saved");
     } catch (error) {
+      console.error("Notification save error:", error);
       showMessage("error", "Failed to save preferences");
     } finally {
       setSaving(false);
@@ -439,6 +435,10 @@ const SettingsPage = () => {
   const handleUpdatePassword = async () => {
     if (!user || passwords.new !== passwords.confirm) {
       showMessage("error", "Passwords do not match");
+      return;
+    }
+    if (passwords.new.length < 6) {
+      showMessage("error", "Password must be at least 6 characters");
       return;
     }
     setSaving(true);
@@ -459,19 +459,19 @@ const SettingsPage = () => {
     try {
       const newPlan = "installment";
       setSiteData(prev => ({ ...prev, plan: newPlan }));
-      
+
       if (siteData.id) {
         await updateDoc(doc(db, "sites", siteData.id), {
           plan: newPlan,
-          updatedAt: new Date()
+          updatedAt: serverTimestamp()
         });
       } else {
         const docRef = await addDoc(collection(db, "sites"), {
           ...siteData,
           plan: newPlan,
           uid: user.uid,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         });
         setSiteData(prev => ({ ...prev, id: docRef.id }));
       }
@@ -487,11 +487,11 @@ const SettingsPage = () => {
   const handleSavePaymentMethod = (e: React.FormEvent) => {
     e.preventDefault();
     setShowPaymentForm(false);
+    setEditingCard(null);
     showMessage("success", "Payment method added successfully");
   };
 
   const handleDeleteCard = (id: string) => {
-    // In a real app, this would call an API to remove the payment method
     setSiteData(prev => ({
       ...prev,
       paymentMethods: prev.paymentMethods.filter(pm => pm.id !== id)
@@ -507,19 +507,11 @@ const SettingsPage = () => {
     { id: "billing", label: "Billing", icon: CreditCard },
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
+    { id: "logout", label: "Logout", icon: LogOut },
   ];
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex h-screen items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
+    <>
     <DashboardLayout>
       <main className="flex-1 p-4 lg:p-6">
         <div className="max-w-4xl mx-auto">
@@ -556,12 +548,12 @@ const SettingsPage = () => {
 
             {/* Settings Content */}
             <div className="flex-1 space-y-6">
-              
+
               {/* PROFILE TAB */}
               {activeTab === "profile" && (
                 <div className="bg-card rounded-2xl border border-border p-6">
                   <h2 className="text-lg font-semibold text-foreground mb-6">Profile Settings</h2>
-                  
+
                   {/* Avatar */}
                   <div className="flex items-center gap-6 mb-8">
                     <div className="relative">
@@ -579,7 +571,7 @@ const SettingsPage = () => {
                           </div>
                         )}
                       </div>
-                      <button 
+                      <button
                         onClick={() => {
                           setMediaUploadType("profile");
                           setShowMediaLibrary(true);
@@ -603,7 +595,7 @@ const SettingsPage = () => {
                         <input
                           type="text"
                           value={userData.firstName}
-                          onChange={(e) => setUserData({...userData, firstName: e.target.value})}
+                          onChange={(e) => setUserData({ ...userData, firstName: e.target.value })}
                           className="w-full px-4 py-2.5 bg-muted border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
@@ -612,17 +604,17 @@ const SettingsPage = () => {
                         <input
                           type="text"
                           value={userData.lastName}
-                          onChange={(e) => setUserData({...userData, lastName: e.target.value})}
+                          onChange={(e) => setUserData({ ...userData, lastName: e.target.value })}
                           className="w-full px-4 py-2.5 bg-muted border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
                     </div>
-                     <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">Sex</label>
                         <select
                           value={userData.sex}
-                          onChange={(e) => setUserData({...userData, sex: e.target.value})}
+                          onChange={(e) => setUserData({ ...userData, sex: e.target.value })}
                           className="w-full px-4 py-2.5 bg-muted border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
                           <option value="">Select...</option>
@@ -637,7 +629,7 @@ const SettingsPage = () => {
                         <input
                           type="date"
                           value={userData.birthday}
-                          onChange={(e) => setUserData({...userData, birthday: e.target.value})}
+                          onChange={(e) => setUserData({ ...userData, birthday: e.target.value })}
                           className="w-full px-4 py-2.5 bg-muted border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
@@ -656,11 +648,11 @@ const SettingsPage = () => {
                       <input
                         type="tel"
                         value={userData.phone}
-                        onChange={(e) => setUserData({...userData, phone: e.target.value})}
+                        onChange={(e) => setUserData({ ...userData, phone: e.target.value })}
                         className="w-full px-4 py-2.5 bg-muted border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
-                   
+
                     <Button onClick={handleSaveProfile} disabled={saving} className="w-full sm:w-auto">
                       {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
                       Save Profile
@@ -673,60 +665,60 @@ const SettingsPage = () => {
               {activeTab === "store" && (
                 <div className="bg-card rounded-2xl border border-border p-6">
                   <h2 className="text-lg font-semibold text-foreground mb-6">Store Settings</h2>
-                  
+
                   {/* Store Images */}
                   <div className="grid sm:grid-cols-2 gap-6 mb-6">
-                     {/* Logo */}
-                     <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Store Logo</label>
-                        <div 
-                          className="w-32 h-32 bg-muted rounded-xl flex items-center justify-center cursor-pointer overflow-hidden relative border-2 border-dashed border-border hover:border-primary/50 transition-colors"
-                          onClick={() => {
-                            setMediaUploadType("logo");
-                            setShowMediaLibrary(true);
-                          }}
-                        >
-                          {siteData.logo ? (
-                            <img src={siteData.logo} alt="Logo" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="text-center">
-                              <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
-                              <span className="text-xs text-muted-foreground">Select Logo</span>
-                            </div>
-                          )}
-                          {uploading === "logo" && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <Loader2 className="w-6 h-6 text-white animate-spin" />
-                            </div>
-                          )}
-                        </div>
-                     </div>
+                    {/* Logo */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Store Logo</label>
+                      <div
+                        className="w-32 h-32 bg-muted rounded-xl flex items-center justify-center cursor-pointer overflow-hidden relative border-2 border-dashed border-border hover:border-primary/50 transition-colors"
+                        onClick={() => {
+                          setMediaUploadType("logo");
+                          setShowMediaLibrary(true);
+                        }}
+                      >
+                        {siteData.logo ? (
+                          <img src={siteData.logo} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-center">
+                            <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
+                            <span className="text-xs text-muted-foreground">Select Logo</span>
+                          </div>
+                        )}
+                        {uploading === "logo" && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                     {/* Cover */}
-                     <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Cover Image</label>
-                        <div 
-                          className="w-full h-32 bg-muted rounded-xl flex items-center justify-center cursor-pointer overflow-hidden relative border-2 border-dashed border-border hover:border-primary/50 transition-colors"
-                          onClick={() => {
-                            setMediaUploadType("cover");
-                            setShowMediaLibrary(true);
-                          }}
-                        >
-                          {siteData.coverImage ? (
-                            <img src={siteData.coverImage} alt="Cover" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="text-center">
-                              <Image className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
-                              <span className="text-xs text-muted-foreground">Select Cover</span>
-                            </div>
-                          )}
-                           {uploading === "cover" && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <Loader2 className="w-6 h-6 text-white animate-spin" />
-                            </div>
-                          )}
-                        </div>
-                     </div>
+                    {/* Cover */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Cover Image</label>
+                      <div
+                        className="w-full h-32 bg-muted rounded-xl flex items-center justify-center cursor-pointer overflow-hidden relative border-2 border-dashed border-border hover:border-primary/50 transition-colors"
+                        onClick={() => {
+                          setMediaUploadType("cover");
+                          setShowMediaLibrary(true);
+                        }}
+                      >
+                        {siteData.coverImage ? (
+                          <img src={siteData.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-center">
+                            <Image className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
+                            <span className="text-xs text-muted-foreground">Select Cover</span>
+                          </div>
+                        )}
+                        {uploading === "cover" && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Form */}
@@ -736,18 +728,18 @@ const SettingsPage = () => {
                       <input
                         type="text"
                         value={siteData.name}
-                        onChange={(e) => setSiteData({...siteData, name: e.target.value})}
+                        onChange={(e) => setSiteData({ ...siteData, name: e.target.value })}
                         className="w-full px-4 py-2.5 bg-muted border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
                     </div>
-                    
+
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">Phone Call Number</label>
                         <input
                           type="tel"
                           value={siteData.phone}
-                          onChange={(e) => setSiteData({...siteData, phone: e.target.value})}
+                          onChange={(e) => setSiteData({ ...siteData, phone: e.target.value })}
                           placeholder="+1 234 567 890"
                           className="w-full px-4 py-2.5 bg-muted border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
@@ -757,7 +749,7 @@ const SettingsPage = () => {
                         <input
                           type="tel"
                           value={siteData.whatsapp}
-                          onChange={(e) => setSiteData({...siteData, whatsapp: e.target.value})}
+                          onChange={(e) => setSiteData({ ...siteData, whatsapp: e.target.value })}
                           placeholder="+1 (555) 000-0000"
                           className="w-full px-4 py-2.5 bg-muted border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
@@ -823,7 +815,9 @@ const SettingsPage = () => {
                             )}
                         </div>
                         {(siteData.plan === "free" || siteData.plan === "trial") && (
-                            <Button size="sm">Upgrade Plan</Button>
+                            <Button size="sm" onClick={handleUpgradePlan}>
+  Upgrade Plan
+</Button>
                         )}
                     </div>
 
@@ -1139,10 +1133,27 @@ const SettingsPage = () => {
                   </div>
                 </div>
               )}
+
+              {/* LOGOUT TAB */}
+              {activeTab === "logout" && (
+                <div className="bg-card rounded-2xl border border-border p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-6">Log Out</h2>
+                  <p className="block text-sm font-medium text-foreground mb-2">Are you sure you want to sign out?</p>
+                    <Button onClick={async () => {
+                  await signOut(auth);
+                  router.push("/login");
+                }}>
+                        Sign Out &nbsp; &nbsp; <LogOut className="w-4 h-4" />
+                    </Button>
+                  </div>
+                
+              )}
             </div>
           </div>
         </div>
 
+
+{showMediaLibrary && (
         <MediaLibraryModal 
           isOpen={showMediaLibrary} 
           onClose={() => { 
@@ -1156,9 +1167,10 @@ const SettingsPage = () => {
           uploading={uploading === mediaUploadType}
           selectedId={selectedMediaId}
           onSelectionChange={setSelectedMediaId}
-        />
+        />)}
       </main>
     </DashboardLayout>
+    </>
   );
 };
 

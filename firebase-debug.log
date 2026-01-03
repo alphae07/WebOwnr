@@ -1,0 +1,58 @@
+[debug] [2025-12-29T14:29:00.193Z] ----------------------------------------------------------------------
+[debug] [2025-12-29T14:29:02.903Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\bin\firebase.js init functions
+[debug] [2025-12-29T14:29:02.924Z] CLI Version:   15.1.0
+[debug] [2025-12-29T14:29:02.925Z] Platform:      win32
+[debug] [2025-12-29T14:29:02.927Z] Node Version:  v20.19.5
+[debug] [2025-12-29T14:29:02.927Z] Time:          Mon Dec 29 2025 15:29:02 GMT+0100 (West Africa Standard Time)
+[debug] [2025-12-29T14:29:02.928Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\alaoa\Webownr
+
+Before we get started, keep in mind:
+
+  * You are initializing within an existing Firebase project directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2025-12-29T15:06:58.739Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-29T15:06:59.582Z] > authorizing via signed-in user (ayomitemidayo@gmail.com)
+[debug] [2025-12-29T15:07:00.179Z] Checked if tokens are valid: false, expires at: 1767006213828
+[debug] [2025-12-29T15:07:00.665Z] Checked if tokens are valid: false, expires at: 1767006213828
+[debug] [2025-12-29T15:07:00.821Z] > refreshing access token with scopes: []
+[debug] [2025-12-29T15:07:01.502Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-12-29T15:07:01.504Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-12-29T15:07:30.053Z] *** [apiv2] error from fetch(https://www.googleapis.com/oauth2/v3/token, {"headers":{},"method":"POST","body":{"_overheadLength":545,"_valueLength":212,"_valuesToMeasure":[],"writable":false,"readable":true,"dataSize":0,"maxDataSize":2097152,"pauseStreams":true,"_released":true,"_streams":[],"_currentStream":null,"_insideLoop":false,"_pendingNext":false,"_boundary":"--------------------------2f557a6ba8ca4508038a72ea","_events":{},"_eventsCount":1}}): FetchError: request to https://www.googleapis.com/oauth2/v3/token failed, reason: Client network socket disconnected before secure TLS connection was established
+[error] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[debug] [2025-12-29T15:07:30.094Z] Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+[debug] [2025-12-29T15:07:31.771Z] FirebaseError: Authentication Error: Your credentials are no longer valid. Please run firebase login --reauth
+
+For CI servers and headless environments, generate a new token with firebase login:ci
+    at invalidCredentialError (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\auth.js:167:12)
+    at refreshTokens (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\auth.js:591:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async getAccessToken (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\apiv2.js:42:18)
+    at async Client.addAuthHeader (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\apiv2.js:169:21)
+    at async Client.request (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\apiv2.js:120:34)
+    at async getFirebaseProject (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\management\projects.js:357:21)
+    at async usingProject (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\init\features\project.js:79:16)
+    at async Object.doSetup (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\init\features\project.js:30:9)
+    at async init (C:\Users\alaoa\AppData\Local\pnpm\global\5\.pnpm\firebase-tools@15.1.0_@type_8e58057a2788c1b9c832d0d412de05ac\node_modules\firebase-tools\lib\init\index.js:82:13)
+[error] 
+[error] Error: Failed to get Firebase project braided-horizon-436600-b6. Please make sure the project exists and your account has permission to access it.

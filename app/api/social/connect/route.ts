@@ -1,7 +1,7 @@
 // /app/api/social/connect/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/firebase-admin";
-import { saveSocialPlatform } from "@/lib/firestore";
+import { auth } from "@/lib/firebase";
+import { saveSocialPlatform } from "@/lib/firebase";
 
 interface OAuthTokens {
   accessToken: string;

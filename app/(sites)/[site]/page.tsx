@@ -13,8 +13,8 @@ export async function generateMetadata(
   const { site } = await props.params;
 
   return {
-    title: `${site} — WebOwnr`,
-    description: `Live site for ${site} on WebOwnr.`,
+    title: `${site}`,
+    description: `Live site for ${site.description} on WebOwnr.`,
   };
 }
 
@@ -28,7 +28,32 @@ export default async function SitePage(props: { params: ParamsPromise }) {
   console.log("🔥 Firestore result:", siteData);
   
   if (!siteData) {
-    return <div>Site not found</div>;
+    return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-4xl font-bold text-foreground mb-4">404</h1>
+        <p className="text-lg text-muted-foreground mb-2">
+          Store not found
+        </p>
+        <p className="text-sm text-muted-foreground mb-6">
+          The page you’re looking for doesn’t exist or has been moved.
+        </p>
+
+        <div className="flex gap-3 justify-center">
+          <Link href="/">
+            <Button>Go Home</Button>
+          </Link>
+
+          <Link href="/signup">
+            <Button variant="outline">
+              Create Store
+            </Button>
+          </Link>
+        </div>
+
+      </div>
+    </div>
+    );
   }
 
   const pageData = await getPageData(siteData, "home");

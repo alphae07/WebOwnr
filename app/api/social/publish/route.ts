@@ -1,12 +1,12 @@
 // /app/api/social/publish/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/firebase-admin";
+import { auth } from "@/lib/firebase";
 import {
   getSocialPlatforms,
   getProduct,
   createSocialPost,
   updatePostMetrics,
-} from "@/lib/firestore";
+} from "@/lib/firebase";
 import { FacebookAPI, TwitterAPI, TikTokAPI } from "@/lib/social-media-api";
 import { toast } from "sonner";
 

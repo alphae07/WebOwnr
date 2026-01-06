@@ -5,6 +5,7 @@ import { collection, doc, getDoc, getDocs, orderBy, query, where } from "firebas
 import { db } from "@/firebase/firebaseConfig";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 import {
   ShoppingCart,
   Search,
@@ -70,9 +71,11 @@ interface CartItem {
   image?: string;
 }
 
-const Storefront = ({ data }: { data: TemplateData }) => {
+const Modern = ({ data }: { data: TemplateData }) => {
   const [templateData, setTemplateData] = useState<TemplateData>(data);
   const [cartOpen, setCartOpen] = useState(false);
+  const router = useRouter();
+  const [wishlistOpen, setWishlistOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -93,12 +96,53 @@ const Storefront = ({ data }: { data: TemplateData }) => {
     return [...cats, ...Array.from(uniqueCats)];
   }, [products]);
 
+  const [cartHydrated, setCartHydrated] = useState(false);
+  const [wishlistHydrated, setWishlistHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("webownr_wishlist") : null;
+      if (stored) {
+        const ids = JSON.parse(stored) as string[];
+        setWishlist(new Set(ids));
+      }
+      setWishlistHydrated(true);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && wishlistHydrated) {
+        localStorage.setItem("webownr_wishlist", JSON.stringify(Array.from(wishlist)));
+      }
+    } catch {}
+  }, [wishlist, wishlistHydrated]);
+
+  useEffect(() => {
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("webownr_cart") : null;
+      if (stored) {
+        const items = JSON.parse(stored) as CartItem[];
+        setCartItems(items);
+      }
+      setCartHydrated(true);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && cartHydrated) {
+        localStorage.setItem("webownr_cart", JSON.stringify(cartItems));
+      }
+    } catch {}
+  }, [cartItems, cartHydrated]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoadingProducts(true);
-        let currentSiteId = data.siteId;
-        let currentData = { ...data };
+        let currentSiteId = templateData.siteId;
+        let currentData = { ...templateData };
 
         // Fetch site details if missing
         if (!currentData.businessName || !currentSiteId) {
@@ -128,7 +172,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
               businessName: (siteDoc as any).name || (siteDoc as any).businessName || currentData.businessName,
               logo: (siteDoc as any).logo || currentData.logo,
               coverImage: (siteDoc as any).coverImage || currentData.coverImage,
-              about: (siteDoc as any).description || (siteDoc as any).about || currentData.about,
+              about: (siteDoc as any).about || (siteDoc as any).description || currentData.description,
               tagline: (siteDoc as any).tagline || currentData.tagline,
               themeColor: (siteDoc as any).themeColor || currentData.themeColor,
               fontFamily: (siteDoc as any).fontFamily || currentData.fontFamily,
@@ -171,7 +215,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
       }
     };
     fetchData();
-  }, [data.siteId, data.subdomain, data.businessName]);
+  }, [templateData.siteId, templateData.subdomain, templateData.businessName]);
 
   useEffect(() => {
     let filtered = products;
@@ -238,7 +282,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
     const message = `Hi, I'd like to order:\n\n${cartItems
       .map(item => `${item.name} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`)
       .join("\n")}\n\nTotal: $${cartTotal.toFixed(2)}`;
-    const phone = data.whatsapp?.replace(/\D/g, "") || "";
+    const phone = templateData.whatsapp?.replace(/\D/g, "") || "";
     if (phone) {
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank");
     }
@@ -269,16 +313,16 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md"
                   style={{ backgroundColor: themeColor }}
                 >
-                  {data.logo ? (
-                    <img src={data.logo} alt={data.businessName} className="w-10 h-10 rounded-xl object-cover" />
+                  {templateData.logo ? (
+                    <img src={templateData.logo} alt={templateData.businessName} className="w-10 h-10 rounded-xl object-cover" />
                   ) : (
-                    (data.businessName || "Store").charAt(0)
+                    (templateData.businessName || "Store").charAt(0)
                   )}
                 </div>
                 <div className="hidden sm:block">
-                  <div className="font-bold text-lg text-foreground">{data.businessName || "Store"}</div>
-                  {data.tagline && (
-                    <div className="text-xs text-muted-foreground">{data.tagline}</div>
+                  <div className="font-bold text-lg text-foreground">{templateData.businessName || "Store"}</div>
+                  {templateData.tagline && (
+                    <div className="text-xs text-muted-foreground">{templateData.tagline}</div>
                   )}
                 </div>
               </Link>
@@ -306,7 +350,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                   <Search className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setWishlist(new Set())}
+                  onClick={() => setWishlistOpen(true)}
                   className="hidden sm:flex p-2 hover:bg-muted rounded-lg transition-colors relative"
                 >
                   <Heart className="w-5 h-5" />
@@ -357,12 +401,12 @@ const Storefront = ({ data }: { data: TemplateData }) => {
             )}
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex gap-1">
+            <nav className="hidden lg:flex gap-1 mt-3">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat || "All")}
-                  className={cn(
+                  className={cn( 
                     "px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                     selectedCategory === cat
                       ? "text-white"
@@ -542,7 +586,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                         <img
                           src={product.image}
                           alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 z-0"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted">
@@ -553,7 +597,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                       {/* Badge */}
                       {product.badge && (
                         <span
-                          className="absolute top-3 left-3 px-3 py-1 text-xs font-semibold rounded-full text-white"
+                          className="absolute top-8 left-3 px-3 py-1 text-xs font-semibold rounded-full text-white z-10"
                           style={{
                             backgroundColor:
                               product.badge === "Sale"
@@ -570,7 +614,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                       {/* Wishlist Button */}
                       <button
                         onClick={() => toggleWishlist(product.id)}
-                        className="absolute top-3 right-3 p-2.5 bg-white/90 backdrop-blur rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:scale-110 transition-transform"
+                        className="absolute top-8 right-3 p-2.5 bg-white/90 backdrop-blur rounded-full shadow-md hover:scale-110 transition-transform z-10"
                       >
                         <Heart
                           className="w-4 h-4"
@@ -595,28 +639,26 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                     </div>
 
                     {/* Info */}
-                    <div className="p-4">
+                    <div className="p-4" onClick={()=> router.push(`/product/${product.id}`)}>
                       <h3 className="font-semibold text-foreground text-sm md:text-base mb-1 line-clamp-2 group-hover:line-clamp-none">
                         {product.name}
                       </h3>
 
                       {/* Rating */}
-                      {product.rating && (
-                        <div className="flex items-center gap-1 mb-2">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className="w-3 h-3 fill-current"
-                              style={{
-                                color: i < Math.floor(product.rating || 0) ? "#FBBF24" : "#D1D5DB",
-                              }}
-                            />
-                          ))}
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({product.reviews || 0})
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1 mb-2">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className="w-3 h-3 fill-current"
+                            style={{
+                              color: i < Math.floor(product.rating || 0) ? "#FBBF24" : "#D1D5DB",
+                            }}
+                          />
+                        ))}
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({product.reviews || 0})
+                        </span>
+                      </div>
 
                       {/* Price */}
                       <div className="flex items-baseline gap-2">
@@ -680,12 +722,12 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground font-bold"
                   style={{ backgroundColor: themeColor }}
                 >
-                  {(data.businessName || "Store").charAt(0)}
+                  {(templateData.businessName || "Store").charAt(0)}
                 </div>
-                <span className="font-bold text-xl">{data.businessName || "Store"}</span>
+                <span className="font-bold text-xl">{templateData.businessName || "Store"}</span>
               </div>
               <p className="text-background/70 text-sm">
-                {data.about || "Your destination for quality products at affordable prices."}
+                {templateData.about || "Your destination for quality products at affordable prices."}
               </p>
             </div>
 
@@ -698,7 +740,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
               { title: "Help", links: ["Shipping Info", "Returns", "FAQ", "Contact Us"] },
               {
                 title: "Connect",
-                links: [data.phone ? "Call Us" : null, data.whatsapp ? "WhatsApp" : null, data.contactEmail ? "Email" : null, "Social Media"].filter(Boolean),
+                links: [templateData.phone ? "Call Us" : null, templateData.whatsapp ? "WhatsApp" : null, templateData.email ? "Email" : null].filter(Boolean),
               },
             ].map((section) => (
               <div key={section.title}>
@@ -733,7 +775,7 @@ const Storefront = ({ data }: { data: TemplateData }) => {
           {/* Copyright */}
           <div className="text-center">
             <p className="text-sm text-background/60">
-              © {new Date().getFullYear()} {data.businessName || "Store"}. Powered by WebOwnr.
+              © {new Date().getFullYear()} {templateData.businessName || "Store"}. Powered by WebOwnr.
             </p>
           </div>
         </div>
@@ -856,10 +898,19 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                   </div>
                 </div>
                 <Button
-                  onClick={handleCheckout}
-                  size="lg"
                   className="w-full text-white font-semibold"
                   style={{ backgroundColor: themeColor }}
+                  className="w-full"
+                  size="lg"
+                  onClick={() => router.push('/checkout')}
+                >
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  Proceed to Checkout
+                </Button>
+                <Button
+                  onClick={handleCheckout}
+                  size="lg"
+                  className="w-full text-white font-semibold bg-green-500"
                 >
                   <MessageCircle className="w-5 h-5 mr-2" />
                   Order via WhatsApp
@@ -875,6 +926,92 @@ const Storefront = ({ data }: { data: TemplateData }) => {
                 </p>
               </div>
             )}
+          </div>
+        </>
+      )}
+
+      {/* Wishlist Sidebar */}
+      {wishlistOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 animate-fade-in"
+            onClick={() => setWishlistOpen(false)}
+          />
+          <div className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-card z-50 shadow-2xl animate-slide-in-right flex flex-col">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-border flex-shrink-0">
+              <h2 className="text-lg md:text-xl font-bold text-foreground">
+                Wishlist
+              </h2>
+              <button
+                onClick={() => setWishlistOpen(false)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+              {Array.from(wishlist).length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Heart className="w-12 h-12 text-muted-foreground/30 mb-4" />
+                  <p className="text-foreground font-semibold mb-2">No liked products</p>
+                  <p className="text-sm text-muted-foreground">
+                    Tap the heart on products to add them here.
+                  </p>
+                </div>
+              ) : (
+                products
+                  .filter(p => wishlist.has(p.id))
+                  .map(product => (
+                    <div key={product.id} className="flex gap-4 p-4 bg-muted rounded-xl">
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-20 h-20 rounded-lg object-cover bg-background flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-lg bg-background flex items-center justify-center flex-shrink-0">
+                          <Package className="w-8 h-8 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm mb-1 line-clamp-2">
+                          {product.name}
+                        </h3>
+                        <p className="text-sm font-bold" style={{ color: themeColor }}>
+                          ${Number(product.price || 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0 space-y-2">
+                        <Button
+                          onClick={() => addToCart(product)}
+                          size="sm"
+                          className="text-white"
+                          style={{ backgroundColor: themeColor }}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-1" />
+                          Add
+                        </Button>
+                        <button
+                          onClick={() => toggleWishlist(product.id)}
+                          className="text-xs text-muted-foreground hover:text-foreground block"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+            <div className="p-4 md:p-6 border-t border-border space-y-3 flex-shrink-0">
+              <Button
+                onClick={() => setWishlistOpen(false)}
+                className="w-full text-foreground hover:bg-muted"
+                variant="ghost"
+              >
+                Continue Shopping
+              </Button>
+            </div>
           </div>
         </>
       )}
@@ -921,4 +1058,4 @@ const Storefront = ({ data }: { data: TemplateData }) => {
   );
 };
 
-export default Storefront;
+export default Modern;

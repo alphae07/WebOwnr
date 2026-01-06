@@ -67,12 +67,41 @@ export default function SiteRenderer({
 }, [sitee]);
 
 
-  if (loading) return <div className="p-8 text-center">Loading site…</div>;
+  if (loading) return (
+  <div className="min-h-screen flex items-center justify-center bg-muted">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Loading...</p>
+        </div>
+	</div>
+  );
+
   if (missing || !docData )
     return (
-      <div className="p-8 text-center text-red-600">
-        Site not found
+    <div className="min-h-screen flex items-center justify-center bg-background px-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-4xl font-bold text-foreground mb-4">404</h1>
+        <p className="text-lg text-muted-foreground mb-2">
+          Store not found
+        </p>
+        <p className="text-sm text-muted-foreground mb-6">
+          The page you’re looking for doesn’t exist or has been moved.
+        </p>
+
+        <div className="flex gap-3 justify-center">
+          <Link href="/">
+            <Button>Go Home</Button>
+          </Link>
+
+          <Link href="/signup">
+            <Button variant="outline">
+              Create Store
+            </Button>
+          </Link>
+        </div>
+
       </div>
+    </div>
     );
 
   const templateKey: TemplateKey =

@@ -189,7 +189,7 @@ export default function LoginPage() {
               Sign up free
             </Link>
           </p>
-        </div>
+        </div> 
       </div>
 
       {/* Right Panel */}

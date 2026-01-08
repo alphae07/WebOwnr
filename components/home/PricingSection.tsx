@@ -13,7 +13,7 @@ const PricingSection = () => {
     subscription: [
       {
         name: "Starter",
-        price: "$19",
+        price: "₦19",
         period: "/month",
         description: "Perfect for getting started",
         features: [
@@ -27,7 +27,7 @@ const PricingSection = () => {
       },
       {
         name: "Professional",
-        price: "$49",
+        price: "₦49",
         period: "/month",
         description: "Best for growing businesses",
         features: [
@@ -43,7 +43,7 @@ const PricingSection = () => {
       },
       {
         name: "Business",
-        price: "$99",
+        price: "₦99",
         period: "/month",
         description: "For established stores",
         features: [
@@ -60,9 +60,9 @@ const PricingSection = () => {
     installment: [
       {
         name: "Starter",
-        price: "$199",
+        price: "₦199",
         period: " × 12 months",
-        totalPrice: "$2,388",
+        totalPrice: "₦2,388",
         description: "Own your basic store",
         features: [
           "Up to 50 products",
@@ -76,9 +76,9 @@ const PricingSection = () => {
       },
       {
         name: "Professional",
-        price: "$399",
+        price: "₦399",
         period: " × 12 months",
-        totalPrice: "$4,788",
+        totalPrice: "₦4,788",
         description: "Own your professional store",
         features: [
           "Unlimited products",
@@ -93,9 +93,9 @@ const PricingSection = () => {
       },
       {
         name: "Business",
-        price: "$699",
+        price: "₦699",
         period: " × 12 months",
-        totalPrice: "$8,388",
+        totalPrice: "₦8,388",
         description: "Own your enterprise store",
         features: [
           "Everything in Professional",

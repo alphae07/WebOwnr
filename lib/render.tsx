@@ -55,12 +55,6 @@ export function renderSite(site: SiteData | null, path: string): ReactNode {
           <Link href="/">
             <Button>Go Home</Button>
           </Link>
-
-          <Link href="/dashboard">
-            <Button variant="outline">
-              Dashboard
-            </Button>
-          </Link>
         </div>
 
       </div>
@@ -69,3 +63,4 @@ export function renderSite(site: SiteData | null, path: string): ReactNode {
   const safe = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
   return <SiteRenderer sitee={safe(site)} page={safe(page)} />;
 }
+ 

@@ -220,7 +220,7 @@ const Cart = () => {
               </button>
 
               {/* Logo/Brand */}
-              <Link href="#" className="flex items-center gap-3 flex-shrink-0">
+              <Link href="/" className="flex items-center gap-3 flex-shrink-0">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md"
                   style={{ backgroundColor: themeColor }}
@@ -398,7 +398,7 @@ const Cart = () => {
                   className="flex gap-4 p-4 bg-card rounded-2xl border border-border"
                 >
                   <Link
-                    href={'/product/${item.id}'}
+                    href={'/m/product/${item.id}'}
                     className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-muted shrink-0"
                   >
                     <img
@@ -409,7 +409,7 @@ const Cart = () => {
                   </Link>
                   <div className="flex-1 min-w-0">
                     <Link
-                      href={'/product/${item.id}'}
+                      href={'/m/product/${item.id}'}
                       className="font-medium text-foreground hover:text-primary transition-colors line-clamp-2"
                     >
                       {item.name}
@@ -515,7 +515,7 @@ const Cart = () => {
                   style={{ backgroundColor: themeColor }}
                   size="lg"
                   className="w-full"
-                  onClick={() => router.push('/checkout')}
+                  onClick={() => router.push('/m/checkout')}
                 >
                   Proceed to Checkout
                 </Button>

@@ -44,10 +44,10 @@ const Signup = () => {
     }
   };
 
-  return (
+  return ( 
     <div className="min-h-screen bg-background flex">
       {/* Left Panel */}
-      <div className="hidden overflow-hidden flex-1 flex items-center justify-center p-8 relative bg-gradient-to-br from-primary via-teal to-primary">
+      <div className="hidden lg:flex overflow-hidden flex-1 flex items-center justify-center p-8 relative bg-gradient-to-br from-primary via-teal to-primary">
 	 <div className="relative z-10 text-center max-w-md">
           <h2 className="text-3xl font-bold text-primary-foreground mb-4">
             Build Your Dream Store

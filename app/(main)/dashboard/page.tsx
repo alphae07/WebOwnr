@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, query, where, orderBy, Timestamp } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebaseConfig";
-import { cn } from "@/lib/utils";
+import { cn, formatNGN } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -23,7 +23,7 @@ import {
   Users,
   ChevronRight,
   ShoppingBag,
-} from "lucide-react";
+} from "lucide-react"; 
 
 // Define proper TypeScript interfaces
 interface Order {
@@ -230,26 +230,12 @@ const Dashboard = () => {
     return () => unsubscribe();
   }, [router]);
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full p-10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-lg text-muted-foreground">Loading dashboard...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+   
 
   const statsDisplay = [
     {
       label: "Total Revenue",
-      value: `$${stats.revenue.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`,
+      value: formatNGN(Number(stats.revenue || 0)),
       change: statsChanges.revenue.change,
       trend: statsChanges.revenue.trend,
       icon: DollarSign,
@@ -340,6 +326,7 @@ const Dashboard = () => {
                 recentOrders.map((order) => (
                   <div
                     key={order.id}
+                    onClick={() => router.push(`/dashboard/orders/${order.id}`)}
                     className="flex items-center gap-4 p-4 bg-muted rounded-xl"
                   >
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -366,17 +353,18 @@ const Dashboard = () => {
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
-                        {order.customerName || order.customerEmail} •{" "}
-                        {order.productName || "Product"}
+                        {order.customerInfo.firstName || order.customerInfo.email} •{" "}
+                        {order.items?.[0]?.name  || "Product"}
                       </p>
                     </div>
                     <span className="font-semibold text-foreground">
-                      $
-                      {(
+                      {formatNGN(
                         typeof order.amount === "number"
                           ? order.amount
-                          : parseFloat(order.amount as string) || 0
-                      ).toFixed(2)}
+                          : parseFloat(order.amount as string) ||
+                            order?.pricing?.total ||
+                            0
+                      )}
                     </span>
                   </div>
                 ))
@@ -406,7 +394,7 @@ const Dashboard = () => {
                   <div>
                     <p className="font-medium text-foreground">Add Product</p>
                     <p className="text-xs text-muted-foreground">
-                      Create a new listing
+                      Add a new product
                     </p>
                   </div>
                 </button>

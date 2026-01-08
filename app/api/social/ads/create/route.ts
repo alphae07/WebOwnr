@@ -1,6 +1,7 @@
 
+import { NextResponse } from "next/server";
 // /app/api/social/ads/create/route.ts
-export async function POST_ADS_CREATE(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const { userId, adData } = await req.json();
     const { platform, productIds, budget, dailyBudget, targetAudience, startDate, endDate } = adData;

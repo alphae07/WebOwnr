@@ -29,7 +29,7 @@ type TemplateData = {
   logoUrl?: string;
 };
 
-const ProductDetail = ({ data }: { data: TemplateData }) => {
+const ProductDetail = ({ data = {} as TemplateData }: { data?: TemplateData }) => {
   const router = useRouter();
   const search = useSearchParams();
   const [selectedImage, setSelectedImage] = useState(0);
@@ -59,7 +59,7 @@ const ProductDetail = ({ data }: { data: TemplateData }) => {
           setProduct(null);
           setRelatedProducts([]);
           setLoading(false);
-          return;
+          return; 
         }
         // Load product by id if provided, else first product
         let main: any | null = null;
@@ -102,7 +102,7 @@ const ProductDetail = ({ data }: { data: TemplateData }) => {
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, data.siteId, data.subdomain]);
+  }, [search, data?.siteId, data?.subdomain]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -110,7 +110,7 @@ const ProductDetail = ({ data }: { data: TemplateData }) => {
       <header className="sticky top-0 z-50 bg-card border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link href="#" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
                 {data.logoUrl ? (
                   <img src={data.logoUrl} alt={data.businessName || "Logo"} className="w-8 h-8 rounded-lg object-cover" />
@@ -132,7 +132,7 @@ const ProductDetail = ({ data }: { data: TemplateData }) => {
       <main className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm mb-8">
-          <Link href="#" className="text-muted-foreground hover:text-foreground">Home</Link>
+          <Link href="/" className="text-muted-foreground hover:text-foreground">Home</Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
           <Link href="#" className="text-muted-foreground hover:text-foreground">Clothing</Link>
           <ChevronRight className="w-4 h-4 text-muted-foreground" />

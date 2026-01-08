@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +14,16 @@ import {
   Mail,
   Phone,
   MessageCircle,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase"; // adjust path to your firebase config
 
 /* ---------------- Types ---------------- */
 
@@ -23,7 +32,7 @@ type OrderItem = {
   name: string;
   size?: string;
   color?: string;
-  qty: number;
+  quantity: number;
   price: number;
 };
 
@@ -34,44 +43,150 @@ type TimelineStep = {
   current?: boolean;
 };
 
+type Address = {
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+};
+
 type Order = {
   id: string;
   status: string;
   date?: string;
-  customer?: {
+  customerInfo?: {
     name: string;
     email?: string;
     phone?: string;
     address?: string;
   };
+  shippingAddress?: Address;
   items: OrderItem[];
   subtotal: number;
   shipping: number;
   total: number;
   paymentMethod?: string;
+  paymentStatus?: string;
   timeline: TimelineStep[];
 };
 
-interface OrderDetailProps {
-  params: { id: string };
-}
-
-const OrderDetail = ({ params }: OrderDetailProps) => {
-  const { id } = params;
+const OrderDetail = () => {
+  const params = useParams();
+  const id = params?.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [openStatus, setOpenStatus] = useState(false);
 
-  /* ---------------- Fetch Later ---------------- */
+  const statusOptions = [
+    "Order Placed",
+    "Processing",
+    "Shipped",
+    "Delivered",
+    "Cancelled",
+  ];
+
+  /* ---------------- Fetch from Firebase ---------------- */
   useEffect(() => {
     if (!id) return;
 
-    // TODO:
-    // fetchOrderById(id).then(setOrder)
-    // setLoading(false)
+    const fetchOrder = async () => {
+      try {
+        const snap = await getDoc(doc(db, "orders", id));
+        if (!snap.exists()) {
+          setOrder(null);
+          return;
+        }
+        const data = snap.data();
 
-    setLoading(false);
+        // Build timeline
+        const timeline: TimelineStep[] = statusOptions.map((s) => {
+          const complete = data.statusTimeline?.[s];
+          return {
+            status: s,
+            date: complete ? (complete as Timestamp).toDate().toISOString() : undefined,
+            complete: !!complete,
+            current: s === data.status,
+          };
+        });
+
+        const items: OrderItem[] = (data.items || []).map((it: any) => ({
+          id: it.id || "",
+          name: it.name || "",
+          size: it.size,
+          color: it.color,
+          quantity: it.quantity || 0,
+          price: it.price || 0,
+        }));
+
+        setOrder({
+          id,
+          status: data.status || "Order Placed",
+          date: data.createdAt?.toDate().toISOString(),
+          customerInfo: data.customerInfo
+            ? {
+                name: data.customerInfo.name || "",
+                email: data.customerInfo.email,
+                phone: data.customerInfo.phone,
+                address: data.shippingAddress,
+              }
+            : undefined,
+          shippingAddress: data.shippingAddress,
+          items,
+          subtotal: data.pricing.subtotal || 0,
+          shipping: data.pricing.shipping || 0,
+          total: data.pricing.total || 0,
+          paymentMethod: data.paymentMethod,
+          timeline,
+        });
+      } catch (err) {
+        console.error(err);
+        setOrder(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrder();
   }, [id]);
+
+  /* ---------------- Update Status ---------------- */
+  const handleStatusChange = async (newStatus: string) => {
+    if (!order || newStatus === order.status) return;
+    setUpdating(true);
+    try {
+      const updates: any = {
+        status: newStatus,
+        [`statusTimeline.${newStatus}`]: Timestamp.now(),
+      };
+      await updateDoc(doc(db, "orders", id), updates);
+
+      // Recompute local timeline
+      const newTimeline = statusOptions.map((s) => {
+        const complete = order.timeline.find((t) => t.status === s)?.complete || false;
+        return {
+          status: s,
+          date:
+            s === newStatus
+              ? new Date().toISOString()
+              : complete
+              ? order.timeline.find((t) => t.status === s)?.date
+              : undefined,
+          complete: complete || s === newStatus,
+          current: s === newStatus,
+        };
+      });
+
+      setOrder({ ...order, status: newStatus, timeline: newTimeline });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdating(false);
+      setOpenStatus(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -96,9 +211,34 @@ const OrderDetail = ({ params }: OrderDetailProps) => {
                 {/* Status */}
                 <Card title="Order Status">
                   <div className="flex items-center justify-between mb-6">
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
-                      {order.status}
-                    </span>
+                    <div className="relative">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={updating}
+                        onClick={() => setOpenStatus((o) => !o)}
+                        className="inline-flex items-center gap-2"
+                      >
+                        {order.status}
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                      {openStatus && (
+                        <div className="absolute top-full left-0 mt-2 w-48 bg-popover border rounded-lg shadow-lg z-20">
+                          {statusOptions.map((s) => (
+                            <button
+                              key={s}
+                              onClick={() => handleStatusChange(s)}
+                              className={cn(
+                                "w-full text-left px-3 py-2 text-sm hover:bg-accent",
+                                s === order.status && "font-semibold"
+                              )}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="relative">
@@ -128,11 +268,7 @@ const OrderDetail = ({ params }: OrderDetailProps) => {
                       <div className="p-6 bg-muted/30 space-y-2">
                         <Row label="Subtotal" value={`₦${order.subtotal}`} />
                         <Row label="Shipping" value={`₦${order.shipping}`} />
-                        <Row
-                          label="Total"
-                          value={`₦${order.total}`}
-                          bold
-                        />
+                        <Row label="Total" value={`₦${order.total}`} bold />
                       </div>
                     </>
                   )}
@@ -142,15 +278,15 @@ const OrderDetail = ({ params }: OrderDetailProps) => {
               {/* ---------------- Sidebar ---------------- */}
               <div className="space-y-6">
                 <Card title="Customer">
-                  {order.customer ? (
+                  {order.customerInfo ? (
                     <>
-                      <p className="font-medium">{order.customer.name}</p>
+                      <p className="font-medium">{order.customerInfo.name}</p>
 
-                      {order.customer.email && (
-                        <Info icon={<Mail />} text={order.customer.email} />
+                      {order.customerInfo.email && (
+                        <Info icon={<Mail />} text={order.customerInfo.email} />
                       )}
-                      {order.customer.phone && (
-                        <Info icon={<Phone />} text={order.customer.phone} />
+                      {order.customerInfo.phone && (
+                        <Info icon={<Phone />} text={order.customerInfo.phone} />
                       )}
 
                       <Button variant="outline" size="sm" className="w-full gap-2">
@@ -164,10 +300,10 @@ const OrderDetail = ({ params }: OrderDetailProps) => {
                 </Card>
 
                 <Card title="Shipping Address">
-                  {order.customer?.address ? (
+                  {order.shippingAddress ? (
                     <Info
                       icon={<MapPin />}
-                      text={order.customer.address}
+                      text={`${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.zipCode}, ${order.shippingAddress.country}`}
                     />
                   ) : (
                     <Empty text="No shipping address" />
@@ -179,7 +315,7 @@ const OrderDetail = ({ params }: OrderDetailProps) => {
                     <>
                       <p className="text-sm">{order.paymentMethod}</p>
                       <span className="inline-block px-2 py-1 bg-teal/10 text-teal text-xs rounded-lg">
-                        Paid
+                        {order.paymentStatus ?? 'Pending'}
                       </span>
                     </>
                   ) : (
@@ -205,9 +341,7 @@ const Card = ({ title, children }: any) => (
 );
 
 const Empty = ({ text }: { text: string }) => (
-  <div className="p-6 text-center text-sm text-muted-foreground">
-    {text}
-  </div>
+  <div className="p-6 text-center text-sm text-muted-foreground">{text}</div>
 );
 
 const Row = ({ label, value, bold }: any) => (
@@ -226,21 +360,17 @@ const Info = ({ icon, text }: any) => (
 
 const ItemRow = ({ item }: { item: OrderItem }) => (
   <div className="flex gap-4 p-4">
-    <div className="w-16 h-16 bg-muted rounded-lg" />
+    <img src={item.image} alt={item.name} className="w-16 h-16 bg-muted rounded-lg object-cover" />
     <div className="flex-1">
       <p className="font-medium">{item.name}</p>
       <p className="text-sm text-muted-foreground">
         {item.color} {item.size && `· ${item.size}`}
       </p>
-      <p className="text-sm">Qty: {item.qty}</p>
+      <p className="text-sm">Qty: {item.quantity}</p>
     </div>
     <div className="text-right">
-      <p className="font-medium">
-        ₦{(item.price * item.qty).toFixed(2)}
-      </p>
-      <p className="text-xs text-muted-foreground">
-        ₦{item.price} each
-      </p>
+      <p className="font-medium">₦{(item.price * item.quantity).toFixed(2)}</p>
+      <p className="text-xs text-muted-foreground">₦{item.price} each</p>
     </div>
   </div>
 );

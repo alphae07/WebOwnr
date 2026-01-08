@@ -1,4 +1,5 @@
 import "./globals.css";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 export default function RootLayout({
   children,
 }: {
@@ -6,7 +7,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <GoogleAnalytics />
+        {children}
+      </body>
     </html>
   );
 }

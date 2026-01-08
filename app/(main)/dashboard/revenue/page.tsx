@@ -16,7 +16,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebaseConfig";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatNGN } from "@/lib/utils";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   DollarSign,
@@ -218,11 +218,16 @@ const Revenue = () => {
     const filteredOrders = ordersData.filter(filterByDate);
     const filteredWithdrawals = withdrawalsData.filter(filterByDate);
 
+    const getAmount = (o: any): number => {
+      const v = o?.amount ?? o?.pricing?.total ?? 0;
+      return typeof v === "number" ? v : parseFloat(v) || 0;
+    };
+
     // Calculate total revenue (completed/delivered orders)
     const totalRevenue = filteredOrders.reduce((sum, order) => {
       const status = order.status?.toLowerCase();
       if (status === "completed" || status === "delivered" || status === "paid") {
-        return sum + Number(order.amount || 0);
+        return sum + getAmount(order);
       }
       return sum;
     }, 0);
@@ -231,7 +236,7 @@ const Revenue = () => {
     const pendingAmount = filteredOrders.reduce((sum, order) => {
       const status = order.status?.toLowerCase();
       if (status === "pending" || status === "processing") {
-        return sum + Number(order.amount || 0);
+        return sum + getAmount(order);
       }
       return sum;
     }, 0);
@@ -313,7 +318,10 @@ const Revenue = () => {
     const rows = orders.map(order => [
       formatDate(order.createdAt),
       order.productName || order.description || `Order #${order.orderId || order.id.slice(0, 8)}`,
-      order.amount.toFixed(2),
+      (() => {
+        const v = (order as any)?.amount ?? (order as any)?.pricing?.total ?? 0;
+        return (typeof v === "number" ? v : parseFloat(v) || 0).toFixed(2);
+      })(),
       order.status
     ]);
 
@@ -379,7 +387,7 @@ const Revenue = () => {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">Total Revenue</p>
-              <p className="text-2xl font-bold text-foreground">${stats.revenue.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-foreground">{formatNGN(stats.revenue)}</p>
             </div>
 
             <div className="bg-card rounded-xl border border-border p-6 hover:shadow-md transition-shadow">
@@ -393,7 +401,7 @@ const Revenue = () => {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">Available Balance</p>
-              <p className="text-2xl font-bold text-foreground">${stats.available.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-foreground">{formatNGN(stats.available)}</p>
             </div>
 
             <div className="bg-card rounded-xl border border-border p-6 hover:shadow-md transition-shadow">
@@ -407,7 +415,7 @@ const Revenue = () => {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">Pending</p>
-              <p className="text-2xl font-bold text-foreground">${stats.pending.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-foreground">{formatNGN(stats.pending)}</p>
             </div>
 
             <div className="bg-card rounded-xl border border-border p-6 hover:shadow-md transition-shadow">
@@ -417,7 +425,7 @@ const Revenue = () => {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">Total Withdrawn</p>
-              <p className="text-2xl font-bold text-foreground">${stats.withdrawn.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-foreground">{formatNGN(stats.withdrawn)}</p>
             </div>
           </div>
 
@@ -456,7 +464,7 @@ const Revenue = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-teal">
-                          +${Number(tx.amount).toFixed(2)}
+                          +{formatNGN(((tx as any)?.amount ?? (tx as any)?.pricing?.total ?? 0) as number || (parseFloat(((tx as any)?.amount ?? (tx as any)?.pricing?.total) as any) || 0))}
                         </p>
                         <span className={cn(
                           "text-xs px-2 py-0.5 rounded-full inline-block capitalize",
@@ -500,7 +508,7 @@ const Revenue = () => {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Available: ${stats.available.toFixed(2)}
+                      Available: {formatNGN(stats.available)}
                     </p>
                   </div>
                   <div>

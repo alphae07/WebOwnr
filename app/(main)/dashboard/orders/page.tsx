@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebaseConfig";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatNGN } from "@/lib/utils";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Search,
@@ -31,7 +31,7 @@ interface Order {
   customerEmail?: string;
   customerName?: string;
   productName?: string;
-  products?: string[];
+  items?: string[];
   amount: number;
   status: string;
   paymentStatus?: string;
@@ -154,18 +154,22 @@ const Orders = () => {
 
   // Filter orders by tab and search
   const filteredOrders = orders.filter((order) => {
+    // Normalize status safely
+    const status = (order.status || "").toString().toLowerCase();
+
     // Filter by tab
     const matchesTab =
       activeTab === "all" ||
-      order.status?.toLowerCase() === activeTab.toLowerCase() ||
-      (activeTab === "delivered" && (order.status?.toLowerCase() === "completed"));
+      status === activeTab.toLowerCase() ||
+      (activeTab === "delivered" && status === "completed");
 
-    // Filter by search
+    // Filter by search (only if there's a query)
     const matchesSearch =
-      order.orderId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customerEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.productName?.toLowerCase().includes(searchQuery.toLowerCase());
+      !searchQuery.trim() ||
+      (order.orderId || "").toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.customerName || "").toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.customerEmail || "").toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.productName || "").toString().toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesTab && matchesSearch;
   });
@@ -193,18 +197,12 @@ const Orders = () => {
       .slice(0, 2);
   };
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-full p-10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-lg text-muted-foreground">Loading orders...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const getOrderAmount = (order: any): number => {
+    const amt = order?.amount ?? order?.pricing?.total ?? 0;
+    return typeof amt === "number" ? amt : parseFloat(amt) || 0;
+  };
+
+
 
   return (
     <DashboardLayout>
@@ -253,7 +251,8 @@ const Orders = () => {
           </div>
 
           {/* Orders Table */}
-          <div className="bg-card md:max-w-md max-w-full sm:max-w-screen rounded-2xl border border-border overflow-hidden">
+        
+          <div className="bg-card  max-w-full  rounded-2xl border border-border overflow-hidden">
             {filteredOrders.length === 0 ? (
               <div className="p-12 text-center">
                 <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -269,29 +268,29 @@ const Orders = () => {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
+              <div className="w-full overflow-auto">
+                <table className="min-w-[380px] w-full">
                   <thead className="bg-muted border-b border-border">
                     <tr>
-                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      <th className="text-left px-2 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
                         Order
                       </th>
-                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      <th className="text-left px-2 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
                         Customer
                       </th>
-                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      <th className="hidden md:table-cell text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
                         Product
                       </th>
-                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      <th className="hidden md:table-cell text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
                         Total
                       </th>
-                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      <th className="hidden md:table-cell text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
                         Date
                       </th>
-                      <th className="text-left px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      <th className="text-left px-2 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
                         Status
                       </th>
-                      <th className="text-right px-4 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
+                      <th className="text-right px-2 lg:px-6 py-4 text-sm font-medium text-muted-foreground whitespace-nowrap">
                         Actions
                       </th>
                     </tr>
@@ -302,45 +301,41 @@ const Orders = () => {
                         key={order.id}
                         className="hover:bg-muted/50 transition-colors"
                       >
-                        <td className="px-4 lg:px-6 py-4">
+                        <td className="px-2 lg:px-6 py-4">
                           <span className="font-medium text-foreground text-sm whitespace-nowrap">
                             #{order.orderId || order.id.slice(0, 8)}
                           </span>
                         </td>
-                        <td className="px-4 lg:px-6 py-4">
-                          <div className="flex items-center gap-3 min-w-[200px]">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                              <span className="text-xs font-medium text-primary">
-                                {getInitials(order.customerName)}
-                              </span>
-                            </div>
+                        <td className="px-2 lg:px-6 py-4">
+                          <div className="flex items-center gap-3 min-w-[50px]">
+                            
                             <div className="min-w-0">
                               <p className="font-medium text-foreground text-sm truncate">
-                                {order.customerName || "Unknown"}
+                                {order.customerInfo.firstName || "Unknown"}&nbsp;{order.customerInfo.lastName || ""}
                               </p>
                               <p className="text-xs text-muted-foreground truncate">
-                                {order.customerEmail || "No email"}
+                                {order.customerInfo.email || "No email"}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 lg:px-6 py-4">
+                        <td className="hidden md:table-cell px-4 lg:px-6 py-4">
                           <p className="text-sm text-foreground truncate max-w-[200px]">
-                            {order.productName || "Product"}
+                            {order.items?.[0]?.name || order.productName || "Product"}
                           </p>
-                          {order.products && order.products.length > 1 && (
+                          {(order.items?.length ?? 0) > 1 && (
                             <p className="text-xs text-muted-foreground">
-                              +{order.products.length - 1} more
+                              +{order.items.length - 1} more
                             </p>
                           )}
                         </td>
-                        <td className="px-4 lg:px-6 py-4 font-medium text-foreground whitespace-nowrap">
-                          ${order.amount.toFixed(2)}
+                        <td className="hidden md:table-cell px-4 lg:px-6 py-4 font-medium text-foreground whitespace-nowrap">
+                          {formatNGN(getOrderAmount(order))}
                         </td>
-                        <td className="px-4 lg:px-6 py-4 text-muted-foreground text-sm whitespace-nowrap">
+                        <td className="hidden md:table-cell px-4 lg:px-6 py-4 text-muted-foreground text-sm whitespace-nowrap">
                           {formatDate(order.createdAt)}
                         </td>
-                        <td className="px-4 lg:px-6 py-4">
+                        <td className="px-2 lg:px-6 py-4">
                           <span
                             className={cn(
                               "px-2.5 py-1 text-xs rounded-full font-medium whitespace-nowrap inline-block",
@@ -361,11 +356,12 @@ const Orders = () => {
                             {order.status}
                           </span>
                         </td>
-                        <td className="px-4 lg:px-6 py-4">
+                        <td className="px-2 lg:px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
                               title="View order"
+                              onClick={()=> router.push(`/dashboard/orders/${order.id}`)}
                             >
                               <Eye className="w-4 h-4" />
                             </button>
@@ -382,17 +378,11 @@ const Orders = () => {
                   </tbody>
                 </table>
               </div>
+              
             )}
           </div>
 
-          {/* Mobile Scroll Hint */}
-          {filteredOrders.length > 0 && (
-            <div className="lg:hidden text-center">
-              <p className="text-xs text-muted-foreground">
-                ← Swipe to see more →
-              </p>
-            </div>
-          )}
+         
         </main>
       </div>
     </DashboardLayout>

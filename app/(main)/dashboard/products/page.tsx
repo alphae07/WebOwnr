@@ -16,7 +16,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebaseConfig";
-import { cn } from "@/lib/utils";
+import { cn, formatNGN } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -553,7 +553,7 @@ const Products = () => {
                       </td>
                       <td className="px-6 scroll-smooth whitespace-nowrap py-4 font-medium text-foreground">
                         {typeof product.price === "number"
-                          ? `$${product.price.toFixed(2)}`
+                          ? formatNGN(product.price)
                           : product.price}
                       </td>
                       <td className="px-6 scroll-smooth whitespace-nowrap py-4 text-muted-foreground">
@@ -650,7 +650,7 @@ const Products = () => {
                   <p className="text-sm text-muted-foreground mb-1">Price</p>
                   <p className="font-medium text-foreground">
                     {typeof selectedProduct.price === "number"
-                      ? `$${selectedProduct.price.toFixed(2)}`
+                      ? formatNGN(selectedProduct.price as number)
                       : selectedProduct.price}
                   </p>
                 </div>

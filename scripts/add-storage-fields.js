@@ -1,16 +1,6 @@
 const admin = require('firebase-admin');
-const serviceJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-if (!serviceJson) {
-  console.error('Missing FIREBASE_SERVICE_ACCOUNT_JSON environment variable.');
-  process.exit(1);
-}
-let serviceAccount;
-try {
-  serviceAccount = JSON.parse(serviceJson);
-} catch (e) {
-  console.error('Invalid FIREBASE_SERVICE_ACCOUNT_JSON. Must be valid JSON.', e);
-  process.exit(1);
-}
+const serviceAccount = require('./serviceAccountKey.json'); 
+
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)

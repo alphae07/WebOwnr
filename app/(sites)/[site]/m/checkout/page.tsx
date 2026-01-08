@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { collection, doc, getDoc, getDocs, orderBy, query, where, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, orderBy, query, where, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import {
   ChevronRight,
@@ -28,7 +28,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatNGN } from "@/lib/utils";
 
 type TemplateData = {
   about?: string;
@@ -217,14 +217,14 @@ const Checkout = () => {
     try {
       // Send to buyer
       if (formData.phone) {
-        const buyerMessage = `🎉 *Order Confirmation*%0A%0AHi ${formData.firstName},%0A%0AYour order #${orderData.orderId} has been received!%0A%0A*Order Details:*%0A${cartItems.map(item => `• ${item.name} (x${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`).join('%0A')}%0A%0A*Total:* $${total.toFixed(2)}%0A%0AYou'll receive updates as your order is processed.%0A%0AThank you for shopping with ${templateData.businessName}!`;
+        const buyerMessage = `🎉 *Order Confirmation*%0A%0AHi ${formData.firstName},%0A%0AYour order #${orderData.orderId} has been received!%0A%0A*Order Details:*%0A${cartItems.map(item => `• ${item.name} (x${item.quantity}) - ₦${(item.price * item.quantity).toFixed(2)}`).join('%0A')}%0A%0A*Total:* ₦${total.toFixed(2)}%0A%0AYou'll receive updates as your order is processed.%0A%0AThank you for shopping with ${templateData.businessName}!`;
         
         window.open(`https://wa.me/${formData.phone.replace(/\D/g, '')}?text=${buyerMessage}`, '_blank');
       }
 
       // Send to seller
       if (templateData.whatsapp) {
-        const sellerMessage = `🛍️ *New Order Received!*%0A%0A*Order ID:* ${orderData.orderId}%0A*Customer:* ${formData.firstName} ${formData.lastName}%0A*Phone:* ${formData.phone}%0A*Email:* ${formData.email}%0A%0A*Shipping Address:*%0A${formData.address}${formData.apartment ? ', ' + formData.apartment : ''}%0A${formData.city}, ${formData.state} ${formData.zipCode}%0A${formData.country}%0A%0A*Order Items:*%0A${cartItems.map(item => `• ${item.name} (x${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`).join('%0A')}%0A%0A*Subtotal:* $${subtotal.toFixed(2)}%0A${vatFee > 0 ? `*VAT Fee (5%):* $${vatFee.toFixed(2)}%0A` : ''}*Total:* $${total.toFixed(2)}%0A%0APlease process this order promptly.`;
+        const sellerMessage = `🛍️ *New Order Received!*%0A%0A*Order ID:* ${orderData.orderId}%0A*Customer:* ${formData.firstName} ${formData.lastName}%0A*Phone:* ${formData.phone}%0A*Email:* ${formData.email}%0A%0A*Shipping Address:*%0A${formData.address}${formData.apartment ? ', ' + formData.apartment : ''}%0A${formData.city}, ${formData.state} ${formData.zipCode}%0A${formData.country}%0A%0A*Order Items:*%0A${cartItems.map(item => `• ${item.name} (x${item.quantity}) - ₦${(item.price * item.quantity).toFixed(2)}`).join('%0A')}%0A%0A*Subtotal:* ₦${subtotal.toFixed(2)}%0A${vatFee > 0 ? `*VAT Fee:* ₦${vatFee.toFixed(2)}%0A` : ''}*Total:* ₦${total.toFixed(2)}%0A%0APlease process this order promptly.`;
         
         setTimeout(() => {
           window.open(`https://wa.me/${templateData.whatsapp?.replace(/\D/g, '')}?text=${sellerMessage}`, '_blank');
@@ -239,7 +239,11 @@ const Checkout = () => {
     try {
       const orderData = {
         siteId: templateData.siteId,
-        sellerId: templateData.userId,
+        sellerId: templateData.userId ?? null,
+        customerEmail: formData.email,
+        customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+        productName: cartItems.length > 0 ? (cartItems.length === 1 ? cartItems[0].name : `${cartItems[0].name} +${cartItems.length - 1} more`) : undefined,
+        amount: total,
         customerInfo: {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -276,6 +280,9 @@ const Checkout = () => {
       };
 
       const orderRef = await addDoc(collection(db, "orders"), orderData);
+      try {
+        await updateDoc(orderRef, { orderId: orderRef.id });
+      } catch {}
       return { orderId: orderRef.id, ...orderData };
     } catch (error) {
       console.error('Error creating order:', error);
@@ -285,7 +292,6 @@ const Checkout = () => {
 
   const initializePaystack = async (orderData: any) => {
     try {
-      // Load Paystack script
       const script = document.createElement('script');
       script.src = 'https://js.paystack.co/v1/inline.js';
       document.body.appendChild(script);
@@ -296,7 +302,17 @@ const Checkout = () => {
 
       const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_live_2d97871e3b2082766dfadeea229d64d8d2a8389e';
 
-      // @ts-ignore
+      const PaystackPop = (window as any).PaystackPop;
+      if (!PaystackPop || typeof PaystackPop.setup !== 'function') {
+        throw new Error('Paystack SDK failed to load');
+      }
+      if (!formData.email) {
+        throw new Error('Email is required for payment');
+      }
+      if (total <= 0) {
+        throw new Error('Cart total must be greater than zero');
+      }
+
       const handler = PaystackPop.setup({
         key: paystackPublicKey,
         email: formData.email,
@@ -319,34 +335,38 @@ const Checkout = () => {
             }
           ]
         },
-        callback: async (response: any) => {
+        callback: function (response: any) {
           setIsProcessing(true);
-          try {
-            // Update order with payment info
-            await fetch('/api/verify-payment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                reference: response.reference,
-                orderId: orderData.orderId,
-              }),
-            });
-
-            // Send WhatsApp notifications
-            await sendWhatsAppNotification(orderData);
-
-            // Clear cart
-            setCartItems([]);
-            localStorage.removeItem("webownr_cart");
-
-            // Redirect to success page
-            router.push(`/success?order=${orderData.orderId}`);
-          } catch (error) {
-            setError('Payment verification failed. Please contact support.');
-            setIsProcessing(false);
-          }
+          (async () => {
+            try {
+              await fetch('/api/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  reference: response.reference,
+                  orderId: orderData.orderId,
+                }),
+              });
+              try {
+                const orderDoc = doc(db, "orders", orderData.orderId);
+                await updateDoc(orderDoc, {
+                  status: "paid",
+                  paymentStatus: "paid",
+                  amount: orderData.pricing.total,
+                  updatedAt: serverTimestamp(),
+                });
+              } catch {}
+              await sendWhatsAppNotification(orderData);
+              setCartItems([]);
+              localStorage.removeItem("webownr_cart");
+              router.push(`/m/success?order=${orderData.orderId}`);
+            } catch (error) {
+              setError('Payment verification failed. Please contact support.');
+              setIsProcessing(false);
+            }
+          })();
         },
-        onClose: () => {
+        onClose: function () {
           setIsProcessing(false);
           setError('Payment was cancelled');
         }
@@ -396,7 +416,7 @@ const Checkout = () => {
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
 
-              <Link href={`/${siteParam}`} className="flex items-center gap-3 flex-shrink-0">
+              <Link href='/' className="flex items-center gap-3 flex-shrink-0">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md"
                   style={{ backgroundColor: themeColor }}
@@ -797,7 +817,7 @@ const Checkout = () => {
                   {vatFee > 0 && (
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
                       <p className="text-sm text-amber-800">
-                        <strong>Note:</strong> A 5% VAT fee (${vatFee.toFixed(2)}) is applied.
+                        <strong>Note:</strong> A 5% VAT fee ({formatNGN(vatFee)}) is applied.
                       </p>
                     </div>
                   )}
@@ -832,7 +852,7 @@ const Checkout = () => {
                     Processing...
                   </>
                 ) : step === 2 ? (
-                  `Pay ${total.toFixed(2)}`
+                  `Pay ${formatNGN(total)}`
                 ) : (
                   <>
                     Continue
@@ -861,7 +881,7 @@ const Checkout = () => {
                       <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
                       <p className="text-xs text-muted-foreground">× {item.quantity}</p>
                       <p className="text-sm font-medium text-foreground mt-1">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        {formatNGN(item.price * item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -871,7 +891,7 @@ const Checkout = () => {
               <div className="space-y-3 border-t border-border pt-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="text-foreground">${subtotal.toFixed(2)}</span>
+                  <span className="text-foreground">{formatNGN(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
@@ -881,15 +901,15 @@ const Checkout = () => {
                 </div>
                 {vatFee > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">VAT Fee (5%)</span>
-                    <span className="text-foreground">${vatFee.toFixed(2)}</span>
+                    <span className="text-muted-foreground">VAT Fee</span>
+                    <span className="text-foreground">{formatNGN(vatFee)}</span>
                   </div>
                 )}
                 <div className="border-t border-border pt-3">
                   <div className="flex justify-between">
                     <span className="font-semibold text-foreground">Total</span>
                     <span className="text-xl font-bold text-foreground">
-                      ${total.toFixed(2)}
+                      {formatNGN(total)}
                     </span>
                   </div>
                 </div>
@@ -945,7 +965,7 @@ const Checkout = () => {
                           {product.name}
                         </h3>
                         <p className="text-sm font-bold" style={{ color: themeColor }}>
-                          ${Number(product.price || 0).toFixed(2)}
+                          {formatNGN(Number(product.price || 0))}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0 space-y-2">

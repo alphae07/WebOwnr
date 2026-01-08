@@ -2,18 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "@/firebase/firebaseConfig";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { db } from "@/firebase/firebaseConfig";
-import {
-  collection,
-  getDocs,
-  orderBy,
-  query,
-} from "firebase/firestore";
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 
 import {
   Search,
@@ -29,7 +25,7 @@ interface Customer {
   phone?: string;
   location?: string;
   status?: "active" | "inactive";
-  createdAt?: any;
+  createdAt?: Date | null;
 }
 
 /* ---------------- PAGE ---------------- */
@@ -42,29 +38,79 @@ const Customers = () => {
   /* -------- FETCH CUSTOMERS -------- */
 
   useEffect(() => {
-    const fetchCustomers = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       try {
-        const q = query(
-          collection(db, "customers"),
+        const sitesSnap = await getDocs(collection(db, "sites"));
+        const userSite = sitesSnap.docs.find((d) => d.data().uid === user.uid);
+        if (!userSite) {
+          setLoading(false);
+          return;
+        }
+        const siteId = userSite.id;
+        const ordersQ = query(
+          collection(db, "orders"),
+          where("siteId", "==", siteId),
           orderBy("createdAt", "desc")
         );
-
-        const snapshot = await getDocs(q);
-
-        const data: Customer[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as Omit<Customer, "id">),
-        }));
-
-        setCustomers(data);
+        const ordersSnap = await getDocs(ordersQ);
+        const customerMap = new Map<string, Customer>();
+        ordersSnap.docs.forEach((doc) => {
+          const data: any = doc.data();
+          const email: string =
+            data.customemrEail ||
+            data.customerInfo?.email ||
+            "";
+          if (!email) return;
+          const name: string =
+            data.customerName ||
+            `${data.customerInfo?.firstName || ""} ${data.customerInfo?.lastName || ""}`.trim() ||
+            email.split("@")[0];
+          const phone: string | undefined =
+            data.customerInfo?.phone || data.phone;
+          const createdAt: Date | null = data.createdAt?.toDate
+            ? data.createdAt.toDate()
+            : data.createdAt
+            ? new Date(data.createdAt)
+            : null;
+          const locationParts = [
+            data.shippingAddress?.city,
+            data.shippingAddress?.state,
+            data.shippingAddress?.country,
+          ].filter(Boolean);
+          const location = locationParts.length ? locationParts.join(", ") : undefined;
+          const existing = customerMap.get(email);
+          const status: "active" | "inactive" =
+            (data.status?.toLowerCase() === "completed" ||
+              data.status?.toLowerCase() === "delivered" ||
+              data.status?.toLowerCase() === "paid")
+              ? "active"
+              : "inactive";
+          const merged: Customer = {
+            id: email,
+            name,
+            email,
+            phone,
+            location: existing?.shippingAddress.cityn || location,
+            status: status,
+            createdAt:
+              !existing?.createdAt || (createdAt && existing.createdAt < createdAt)
+                ? createdAt
+                : existing?.createdAt || null,
+          };
+          customerMap.set(email, merged);
+        });
+        setCustomers(Array.from(customerMap.values()));
       } catch (error) {
         console.error("Error fetching customers:", error);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchCustomers();
+    });
+    return () => unsubscribe();
   }, []);
 
   /* -------- SEARCH FILTER -------- */
@@ -129,9 +175,10 @@ const Customers = () => {
                 {
                   customers.filter((c) => {
                     if (!c.createdAt) return false;
-                    const created = c.createdAt.toDate();
+                    const created = c.createdAt || null;
                     const now = new Date();
                     return (
+                      !!created &&
                       created.getMonth() === now.getMonth() &&
                       created.getFullYear() === now.getFullYear()
                     );

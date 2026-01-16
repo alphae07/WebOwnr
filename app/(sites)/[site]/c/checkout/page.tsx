@@ -1,21 +1,21 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { collection, doc, getDoc, getDocs, orderBy, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, orderBy, query, where, addDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import {
-  ShoppingCart,
-  Minus,
-  Plus,
-  Trash2,
   ChevronRight,
-  Tag,
+  Lock,
+  CreditCard,
   Truck,
-  ArrowLeft,
+  MessageCircle,
+  ShoppingCart,
+  Check,
+  ChevronLeft,
   Search,
   Heart,
   User,
@@ -25,8 +25,10 @@ import {
   Facebook,
   Instagram,
   Twitter,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatNGN } from "@/lib/utils";
 
 type TemplateData = {
   about?: string;
@@ -43,13 +45,14 @@ type TemplateData = {
   phone?: string;
   contactEmail?: string;
   category?: string;
+  userId?: string;
+  subscriptionPlan?: string;
 };
 
 interface Product {
   id: string;
   name: string;
   price: number;
-  shipping: number;
   image?: string;
   originalPrice?: number;
   badge?: string;
@@ -74,29 +77,47 @@ type BuyerProfile = {
   address: string;
 };
 
-const Cart = () => {
+
+const Checkout = () => {
   const router = useRouter();
   const params = useParams();
   const siteParam = typeof params?.site === "string" ? params.site : Array.isArray(params?.site) ? params?.site[0] : undefined;
   const [templateData, setTemplateData] = useState<TemplateData>({ subdomain: siteParam });
+  const [cartOpen, setCartOpen] = useState(false);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSearchMobile, setShowSearchMobile] = useState(false);
-   const [cartOpen, setCartOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [step, setStep] = useState(1);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    email: "",
+    phone: "",
+    firstName: "",
+    lastName: "",
+    address: "",
+    apartment: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "Nigeria",
+  });
+const [loadingProducts, setLoadingProducts] = useState(true);
+
+  const [footerModalOpen, setFooterModalOpen] = useState(false);
 
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [cartHydrated, setCartHydrated] = useState(false);
-  const [wishlistHydrated, setWishlistHydrated] = useState(false);
-  const themeColor = templateData.themeColor || "#00BCD4";
-  const fontFamily = templateData.fontFamily || "system-ui";
-  const isDark = templateData.darkMode || false;  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  
-  const [couponCode, setCouponCode] = useState("");
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  const [footerModalContent, setFooterModalContent] = useState<"about" | "contact" | "returns" | "shipping" | null>(null);
+
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [buyerProfile, setBuyerProfile] = useState<BuyerProfile>({
     name: "",
@@ -105,11 +126,22 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
     address: "",
   });
   const [editingProfile, setEditingProfile] = useState(false);
- const [loadingProducts, setLoadingProducts] = useState(true);
-  const [footerModalOpen, setFooterModalOpen] = useState(false);
-  const [footerModalContent, setFooterModalContent] = useState<"about" | "contact" | "returns" | "shipping" | null>(null);
 
-  // Load buyer profile from localStorage
+  const themeColor = templateData.themeColor || "#00BCD4";
+  const fontFamily = templateData.fontFamily || "system-ui";
+  const isDark = templateData.darkMode || false;
+  const categories = useMemo(() => {
+    const cats = ["All"];
+    const uniqueCats = new Set(products.map(p => p.category).filter(Boolean));
+    return [...cats, ...Array.from(uniqueCats)];
+  }, [products]);
+  const [cartHydrated, setCartHydrated] = useState(false);
+  const [wishlistHydrated, setWishlistHydrated] = useState(false);
+
+  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+ // Load buyer profile from localStorage
   useEffect(() => {
     try {
       const stored = typeof window !== "undefined" ? localStorage.getItem("webownr_buyer_profile") : null;
@@ -139,13 +171,12 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
     } catch {}
   }, []);
 
-  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-	 setLoadingProducts(true);
+        setLoadingProducts(true);
         let currentSiteId = templateData.siteId;
         let currentData = { ...templateData };
         let siteDoc: any = null;
@@ -167,6 +198,8 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
           currentData = {
             ...currentData,
             siteId: siteDoc.id,
+            userId: (siteDoc as any).userId,
+            subscriptionPlan: (siteDoc as any).subscriptionPlan || 'free',
             businessName: (siteDoc as any).name || (siteDoc as any).businessName || currentData.businessName,
             logo: (siteDoc as any).logo || currentData.logo,
             coverImage: (siteDoc as any).coverImage || currentData.coverImage,
@@ -189,7 +222,9 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
           const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
           setProducts(list);
         }
-  const productsRef = collection(db, "products");
+
+
+ const productsRef = collection(db, "products");
         const pq = query(productsRef, where("siteId", "==", currentSiteId), orderBy("createdAt", "desc"));
         const snap = await getDocs(pq);
         const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
@@ -201,12 +236,11 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
 } finally {
         setLoadingProducts(false);
       }
- };
-
+    };
     fetchData();
-  }, [templateData.siteId, [siteParam], templateData.subdomain, templateData.businessName]);
+  }, [siteParam, templateData.siteId, templateData.subdomain, templateData.businessName]);
 
-  useEffect(() => {
+ useEffect(() => {
     let filtered = products;
 
     if (selectedCategory !== "All") {
@@ -225,9 +259,7 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
     setFilteredProducts(filtered);
   }, [selectedCategory, searchQuery, products]);
 
-   
 
- 
   useEffect(() => {
     try {
       const stored = typeof window !== "undefined" ? localStorage.getItem("webownr_cart") : null;
@@ -247,25 +279,204 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
     } catch {}
   }, [cartItems, cartHydrated]);
 
-  const updateQuantity = (id: string, change: number) => {
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + change) }
-          : item
-      )
-    );
-  };
-
-  const removeItem = (id: string) => {
-    setCartItems(items => items.filter(item => item.id !== id));
-  };
-
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = templateData.shipping || 0;
-  const total = subtotal + shipping;
+  const shipping = 0; // Free shipping
+  const vatFee = templateData.subscriptionPlan === 'free' ? subtotal * 0.05 : 0;
+  const total = subtotal + shipping + vatFee;
 
-  const openFooterModal = (content: "about" | "contact" | "returns" | "shipping") => {
+  const sendWhatsAppNotification = async (orderData: any) => {
+    if (!whatsappEnabled) return;
+
+    try {
+      // Send to buyer
+      if (formData.phone) {
+        const buyerMessage = `🎉 *Order Confirmation*%0A%0AHi ${formData.firstName},%0A%0AYour order #${orderData.orderId} has been received!%0A%0A*Order Details:*%0A${cartItems.map(item => `• ${item.name} (x${item.quantity}) - ₦${(item.price * item.quantity).toFixed(2)}`).join('%0A')}%0A%0A*Total:* ₦${total.toFixed(2)}%0A%0AYou'll receive updates as your order is processed.%0A%0AThank you for shopping with ${templateData.businessName}!`;
+        
+        window.open(`https://wa.me/${formData.phone.replace(/\D/g, '')}?text=${buyerMessage}`, '_blank');
+      }
+
+      // Send to seller
+      if (templateData.whatsapp) {
+        const sellerMessage = `🛍️ *New Order Received!*%0A%0A*Order ID:* ${orderData.orderId}%0A*Customer:* ${formData.firstName} ${formData.lastName}%0A*Phone:* ${formData.phone}%0A*Email:* ${formData.email}%0A%0A*Shipping Address:*%0A${formData.address}${formData.apartment ? ', ' + formData.apartment : ''}%0A${formData.city}, ${formData.state} ${formData.zipCode}%0A${formData.country}%0A%0A*Order Items:*%0A${cartItems.map(item => `• ${item.name} (x${item.quantity}) - ₦${(item.price * item.quantity).toFixed(2)}`).join('%0A')}%0A%0A*Subtotal:* ₦${subtotal.toFixed(2)}%0A${vatFee > 0 ? `*VAT Fee:* ₦${vatFee.toFixed(2)}%0A` : ''}*Total:* ₦${total.toFixed(2)}%0A%0APlease process this order promptly.`;
+        
+        setTimeout(() => {
+          window.open(`https://wa.me/${templateData.whatsapp?.replace(/\D/g, '')}?text=${sellerMessage}`, '_blank');
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('WhatsApp notification error:', error);
+    }
+  };
+
+  const createOrder = async () => {
+    try {
+      const orderData = {
+        siteId: templateData.siteId,
+        sellerId: templateData.userId ?? null,
+        customerEmail: formData.email,
+        customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+        productName: cartItems.length > 0 ? (cartItems.length === 1 ? cartItems[0].name : `${cartItems[0].name} +${cartItems.length - 1} more`) : undefined,
+        amount: total,
+        customerInfo: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+        },
+        shippingAddress: {
+          address: formData.address,
+          apartment: formData.apartment,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          country: formData.country,
+        },
+        items: cartItems.map(item => ({
+          productId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+        pricing: {
+          subtotal,
+          shipping,
+          vatFee,
+          total,
+        },
+        status: 'pending',
+        paymentStatus: 'pending',
+        paymentMethod: 'paystack',
+        whatsappNotificationEnabled: whatsappEnabled,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      const orderRef = await addDoc(collection(db, "orders"), orderData);
+      try {
+        await updateDoc(orderRef, { orderId: orderRef.id });
+      } catch {}
+      return { orderId: orderRef.id, ...orderData };
+    } catch (error) {
+      console.error('Error creating order:', error);
+      throw new Error('Failed to create order');
+    }
+  };
+
+  const initializePaystack = async (orderData: any) => {
+    try {
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      document.body.appendChild(script);
+
+      await new Promise((resolve) => {
+        script.onload = resolve;
+      });
+
+      const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || 'pk_live_2d97871e3b2082766dfadeea229d64d8d2a8389e';
+
+      const PaystackPop = (window as any).PaystackPop;
+      if (!PaystackPop || typeof PaystackPop.setup !== 'function') {
+        throw new Error('Paystack SDK failed to load');
+      }
+      if (!formData.email) {
+        throw new Error('Email is required for payment');
+      }
+      if (total <= 0) {
+        throw new Error('Cart total must be greater than zero');
+      }
+
+      const handler = PaystackPop.setup({
+        key: paystackPublicKey,
+        email: formData.email,
+        amount: Math.round(total * 100), // Paystack expects amount in kobo/cents
+        currency: 'NGN', // Change based on your needs
+        ref: `${orderData.orderId}_${Date.now()}`,
+        metadata: {
+          orderId: orderData.orderId,
+          siteId: templateData.siteId,
+          custom_fields: [
+            {
+              display_name: "Customer Name",
+              variable_name: "customer_name",
+              value: `${formData.firstName} ${formData.lastName}`
+            },
+            {
+              display_name: "Phone Number",
+              variable_name: "phone_number",
+              value: formData.phone
+            }
+          ]
+        },
+        callback: function (response: any) {
+          setIsProcessing(true);
+          (async () => {
+            try {
+              await fetch('/api/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  reference: response.reference,
+                  orderId: orderData.orderId,
+                }),
+              });
+              try {
+                const orderDoc = doc(db, "orders", orderData.orderId);
+                await updateDoc(orderDoc, {
+                  status: "paid",
+                  paymentStatus: "paid",
+                  amount: orderData.pricing.total,
+                  updatedAt: serverTimestamp(),
+                });
+              } catch {}
+              await sendWhatsAppNotification(orderData);
+              setCartItems([]);
+              localStorage.removeItem("webownr_cart");
+              router.push(`/m/success?order=${orderData.orderId}`);
+            } catch (error) {
+              setError('Payment verification failed. Please contact support.');
+              setIsProcessing(false);
+            }
+          })();
+        },
+        onClose: function () {
+          setIsProcessing(false);
+          setError('Payment was cancelled');
+        }
+      });
+
+      handler.openIframe();
+    } catch (error) {
+      console.error('Paystack initialization error:', error);
+      throw new Error('Failed to initialize payment');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (step < 2) {
+      setStep(step + 1);
+      return;
+    }
+
+    // Step 2 is payment - process order
+    setIsProcessing(true);
+
+    try {
+      // Create order in Firebase
+      const orderData = await createOrder();
+
+      // Initialize Paystack payment
+      await initializePaystack(orderData);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+      setIsProcessing(false);
+    }
+  };
+
+ const openFooterModal = (content: "about" | "contact" | "returns" | "shipping") => {
     setFooterModalContent(content);
     setFooterModalOpen(true);
   };
@@ -307,7 +518,7 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background" style={{ fontFamily }}>
-       {/* Top Bar */}
+      {/* Top Bar */}
       <div className="bg-stone-800 text-white text-sm py-2" style={{backgroundColor: templateData.themeColor}}>
         <div className="container mx-auto px-4 flex justify-between items-center">
           <span>Welcome to our store.</span>
@@ -380,183 +591,379 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
         )}
       </header>
 
-
-
       <main className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm mb-8">
-          <Link href={'/'} className="text-muted-foreground hover:text-foreground">Home</Link>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          <span className="text-foreground">Shopping Cart</span>
-        </nav>
-
-        <div className="flex items-center gap-3 mb-8">
-          <ShoppingCart className="w-8 h-8" style={{color: themeColor}}/>
-          <h1 className="text-3xl font-bold text-foreground">Your Cart</h1>
-          <span className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-full">
-            {cartItems.reduce((sum, item) => sum + item.quantity, 0)} items
-          </span>
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {["Information", "Payment"].map((label, index) => (
+            <div key={label} className="flex items-center gap-2">
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
+                  step > index + 1
+                    ? "text-white"
+                    : step === index + 1
+                    ? "bg-foreground text-background"
+                    : "bg-muted text-muted-foreground"
+                )}
+                style={step > index + 1 ? { backgroundColor: themeColor } : {}}
+              >
+                {step > index + 1 ? <Check className="w-4 h-4" /> : index + 1}
+              </div>
+              <span
+                className={cn(
+                  "text-sm hidden sm:inline",
+                  step >= index + 1 ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                {label}
+              </span>
+              {index < 1 && (
+                <div
+                  className={cn(
+                    "w-8 h-0.5",
+                    step > index + 1 ? "bg-opacity-100" : "bg-border"
+                  )}
+                  style={step > index + 1 ? { backgroundColor: themeColor } : {}}
+                />
+              )}
+            </div>
+          ))}
         </div>
 
-        {cartItems.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
-              <ShoppingCart className="w-12 h-12 text-muted-foreground" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Your cart is empty</h2>
-            <p className="text-muted-foreground mb-6">Looks like you haven't added any items yet.</p>
-            <Button className="w-full text-white font-semibold"
-                  style={{ backgroundColor: themeColor }} onClick={() => router.push('/')}>
-              Continue Shopping
-            </Button>
+        {error && (
+          <div className="max-w-2xl mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-800">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm">{error}</p>
           </div>
-        ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex gap-4 p-4 bg-card rounded-2xl border border-border"
-                >
-                  <Link
-                    href={'/c/product/${item.id}'}
-                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-muted shrink-0"
-                  >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <Link
-                      href={'/c/product/${item.id}'}
-                      className="font-medium text-foreground hover:text-primary transition-colors line-clamp-2"
-                    >
-                      {item.name}
-                    </Link>
-                    <p className="text-lg font-bold text-foreground mt-2">
-                      ${item.price}
-                    </p>
+        )}
 
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="flex items-center border border-border rounded-lg">
-                        <button
-                          onClick={() => updateQuantity(item.id, -1)}
-                          className="p-2 hover:bg-muted transition-colors"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="w-10 text-center font-medium text-sm">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item.id, 1)}
-                          className="p-2 hover:bg-muted transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              <Link
-                href={'/'}
-                style={{color: themeColor}}
-                className="inline-flex items-center gap-2 text-sm hover:underline"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Continue Shopping
-              </Link>
-            </div>
-
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-              <div className="bg-card rounded-2xl border border-border p-6 sticky top-24">
-                <h2 className="text-lg font-semibold text-foreground mb-6">Order Summary</h2>
-
-                {/* Coupon */}
-                <div className="mb-6">
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Discount Code
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="grid lg:grid-cols-2 gap-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {step === 1 && (
+              <>
+                <div className="bg-card rounded-2xl border border-border p-6 space-y-6">
+                  <h2 className="text-xl font-semibold text-foreground">Contact Information</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">
+                         First Name
+                      </label>
                       <Input
-                        placeholder="Enter code"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
-                        style={{outline: 'none'}}
-                        className="pl-9"
+                        placeholder="John"
+                        value={formData.firstName}
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        required
                       />
                     </div>
-                    <Button className="text-white font-semibold"
-                  style={{ backgroundColor: themeColor }}>Apply</Button>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">
+                        Last Name
+                      </label>
+                      <Input
+                        placeholder="Doe"
+                        value={formData.lastName}
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">
+                      Email
+                    </label>
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">
+                      Phone Number
+                    </label>
+                    <Input
+                      type="tel"
+                      placeholder="+234 800 000 0000"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div
+                    className={cn(
+                      "p-4 rounded-xl border-2 cursor-pointer transition-colors",
+                      whatsappEnabled
+                        ? "border-green-500 bg-green-50"
+                        : "border-border hover:border-muted-foreground"
+                    )}
+                    onClick={() => setWhatsappEnabled(!whatsappEnabled)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center",
+                          whatsappEnabled ? "bg-green-500" : "bg-muted"
+                        )}
+                      >
+                        <MessageCircle
+                          className={cn(
+                            "w-5 h-5",
+                            whatsappEnabled ? "text-white" : "text-muted-foreground"
+                          )}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">WhatsApp Notifications</p>
+                        <p className="text-sm text-muted-foreground">
+                          Get order updates via WhatsApp
+                        </p>
+                      </div>
+                      <div
+                        className={cn(
+                          "w-6 h-6 rounded-full border-2 flex items-center justify-center",
+                          whatsappEnabled ? "border-green-500 bg-green-500" : "border-border"
+                        )}
+                      >
+                        {whatsappEnabled && <Check className="w-4 h-4 text-white" />}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="text-foreground">${subtotal.toFixed(2)}</span>
+                <div className="bg-card rounded-2xl border border-border p-6 space-y-6">
+                  <h2 className="text-xl font-semibold text-foreground">Shipping Address</h2>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">
+                      Address
+                    </label>
+                    <Input
+                      placeholder="123 Main Street"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      required
+                    />
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span className="font-semibold" style={{ color: shipping === 0 ? themeColor : undefined }}>
-                      {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
-                    </span>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-1.5 block">
+                      Apartment, suite, etc. (optional)
+                    </label>
+                    <Input
+                      placeholder="Apt 4B"
+                      value={formData.apartment}
+                      onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
+                    />
                   </div>
-                  {shipping > 0 && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded-lg">
-                      <Truck className="w-4 h-4" />
-                      Add coupon code for discount/free shipping
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">
+                        City
+                      </label>
+                      <Input
+                        placeholder="Lagos"
+                        value={formData.city}
+                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">
+                        State
+                      </label>
+                      <Input
+                        placeholder="Lagos"
+                        value={formData.state}
+                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">
+                        ZIP Code
+                      </label>
+                      <Input
+                        placeholder="100001"
+                        value={formData.zipCode}
+                        onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1.5 block">
+                        Country
+                      </label>
+                      <select
+                        value={formData.country}
+                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                        className="w-full h-10 px-3 bg-background border border-input rounded-md text-sm"
+                      >
+                        <option>Nigeria</option>
+                        <option>Ghana</option>
+                        <option>South Africa</option>
+                        <option>Kenya</option>
+                        <option>United States</option>
+                        <option>Canada</option>
+                        <option>United Kingdom</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-muted/50 rounded-xl flex items-center gap-3">
+                    <Truck className="w-5 h-5" style={{ color: themeColor }} />
+                    <div>
+                      <p className="font-medium text-foreground text-sm">Free Standard Shipping</p>
+                      <p className="text-xs text-muted-foreground">Estimated delivery: 5-7 business days</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {step === 2 && (
+              <div className="bg-card rounded-2xl border border-border p-6 space-y-6">
+                <h2 className="text-xl font-semibold text-foreground">Payment</h2>
+
+                <div className="p-4 bg-muted/50 rounded-xl flex items-center gap-3 mb-4">
+                  <Lock className="w-5 h-5" style={{ color: themeColor }} />
+                  <p className="text-sm text-muted-foreground">
+                    Secure payment powered by Paystack
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <CreditCard className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-blue-900 mb-1">Payment via Paystack</p>
+                        <p className="text-sm text-blue-700">
+                          You'll be redirected to Paystack to complete your payment securely. We accept cards, bank transfers, and mobile money.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {vatFee > 0 && (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-sm text-amber-800">
+                        <strong>Note:</strong> A 5% VAT fee ({formatNGN(vatFee)}) is applied.
+                      </p>
                     </div>
                   )}
-                  <div className="border-t border-border pt-3">
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-foreground">Total</span>
-                      <span className="text-xl font-bold text-foreground">
-                        ${total.toFixed(2)}
-                      </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4">
+              {step > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setStep(step - 1)}
+                  className="gap-2"
+                  disabled={isProcessing}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Back
+                </Button>
+              )}
+              <Button
+                type="submit"
+                className="w-full text-white flex-1 font-semibold"
+                style={{ backgroundColor: themeColor }}
+                size="lg"
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : step === 2 ? (
+                  `Pay ${formatNGN(total)}`
+                ) : (
+                  <>
+                    Continue
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+
+          <div className="lg:order-last">
+            <div className="bg-card rounded-2xl border border-border p-6 sticky top-24">
+              <h2 className="text-lg font-semibold text-foreground mb-6">Order Summary</h2>
+
+              <div className="space-y-4 mb-6">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex gap-3">
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} className="w-16 h-16 rounded-lg object-cover bg-muted shrink-0" />
+                    ) : (
+                      <div className="w-16 h-16 bg-muted rounded-lg shrink-0 flex items-center justify-center">
+                        <Package className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">× {item.quantity}</p>
+                      <p className="text-sm font-medium text-foreground mt-1">
+                        {formatNGN(item.price * item.quantity)}
+                      </p>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              <div className="space-y-3 border-t border-border pt-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-foreground">{formatNGN(subtotal)}</span>
                 </div>
-
-                <Button
-                  className="w-full text-white font-semibold"
-                  style={{ backgroundColor: themeColor }}
-                  size="lg"
-                  className="w-full"
-                  onClick={() => router.push('/c/checkout')}
-                >
-                  Proceed to Checkout
-                </Button>
-
-                <p className="text-xs text-center text-muted-foreground mt-4">
-                  Secure checkout powered by Stripe
-                </p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="font-semibold" style={{ color: themeColor }}>
+                    Free
+                  </span>
+                </div>
+                {vatFee > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">VAT Fee</span>
+                    <span className="text-foreground">{formatNGN(vatFee)}</span>
+                  </div>
+                )}
+                <div className="border-t border-border pt-3">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-foreground">Total</span>
+                    <span className="text-xl font-bold text-foreground">
+                      {formatNGN(total)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </main>
+
       {wishlistOpen && (
         <>
           <div
-            className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 animate-fade-in"
+            className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40"
             onClick={() => setWishlistOpen(false)}
           />
-          <div className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-card z-50 shadow-2xl animate-slide-in-right flex flex-col">
+          <div className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-card z-50 shadow-2xl flex flex-col">
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-border flex-shrink-0">
               <h2 className="text-lg md:text-xl font-bold text-foreground">Wishlist</h2>
               <button
@@ -596,7 +1003,7 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
                           {product.name}
                         </h3>
                         <p className="text-sm font-bold" style={{ color: themeColor }}>
-                          ${Number(product.price || 0).toFixed(2)}
+                          {formatNGN(Number(product.price || 0))}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0 space-y-2">
@@ -657,6 +1064,7 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
           </div>
         </>
       )}
+
       {/* Footer */}
       <footer className="bg-black text-white py-16" style={{backgroundColor: "black"}}>
         <div className="container mx-auto px-4">
@@ -869,4 +1277,4 @@ const [profileModalOpen, setProfileModalOpen] = useState(false);
   );
 };
 
-export default Cart;
+export default Checkout;

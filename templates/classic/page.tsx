@@ -57,8 +57,11 @@ const Classic = ({ data }: { data: TemplateData }) => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("All");
+
   const [footerModalOpen, setFooterModalOpen] = useState(false);
+
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
   const [footerModalContent, setFooterModalContent] = useState<"about" | "contact" | "returns" | "shipping" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -255,10 +258,10 @@ const Classic = ({ data }: { data: TemplateData }) => {
       {/* Top Bar */}
       <div className="bg-stone-800 text-white text-sm py-2" style={{backgroundColor: templateData.themeColor}}>
         <div className="container mx-auto px-4 flex justify-between items-center">
-          <span>Free shipping on orders over $150</span>
+          <span>Welcome to our store.</span>
           <div className="hidden md:flex items-center gap-6">
-            <a href="#" className="hover:text-white transition-colors">Track Order</a>
-            <a href="#" className="hover:text-white transition-colors">Help</a>
+            <a href="#socials" className="hover:text-white transition-colors">Social handles</a>
+            <a href="#" onClick={() => openFooterModal("contact")} className="hover:text-white transition-colors">Help</a>
           </div>
         </div>
       </div>
@@ -482,7 +485,7 @@ const Classic = ({ data }: { data: TemplateData }) => {
       {/* Footer */}
       <footer className="bg-black text-white py-16" style={{backgroundColor: "black"}}>
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
             <div>
               <h3 className="font-serif text-xl mb-6" style={{color: templateData.themeColor}}>{templateData.businessName || "CLASSIQUE"}</h3>
               <p className="text-sm leading-relaxed mb-6">
@@ -528,7 +531,7 @@ const Classic = ({ data }: { data: TemplateData }) => {
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-medium mb-4" style={{color: templateData.themeColor}}>Socials</h4>
+              <h4 id="socials" className="text-white font-medium mb-4" style={{color: templateData.themeColor}}>Socials</h4>
               <div className="py-2 flex items-center gap-4">
                 {[Facebook, Instagram, Twitter].map((Icon, i) => {
                   const key = Icon.displayName?.toLowerCase() as keyof typeof templateData;

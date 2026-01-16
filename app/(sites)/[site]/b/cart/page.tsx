@@ -1,12 +1,32 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ShoppingCart, Facebook, Instagram, Twitter, User, Search, Menu, X, Star, ChevronRight, Mail, Phone, MapPin, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { collection, doc, getDoc, getDocs, orderBy, query, where } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
+import {
+  ShoppingCart,
+  Minus,
+  Plus,
+  Trash2,
+  ChevronRight,
+  Tag,
+  Truck,
+  ArrowLeft,
+  Search,
+  Heart,
+  User,
+  Menu,
+  X,
+  Package,
+  Facebook,
+  Instagram,
+  Twitter,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type TemplateData = {
   about?: string;
@@ -22,26 +42,30 @@ type TemplateData = {
   whatsapp?: string;
   phone?: string;
   contactEmail?: string;
-  contactAddress?: string;
   category?: string;
 };
 
-type Product = {
+interface Product {
   id: string;
   name: string;
   price: number;
+  shipping: number;
   image?: string;
   originalPrice?: number;
+  badge?: string;
   rating?: number;
   reviews?: number;
   description?: string;
   category?: string;
-};
+}
 
-type CategoryTile = {
+interface CartItem {
+  id: string;
   name: string;
-  image: string;
-};
+  price: number;
+  quantity: number;
+  image?: string;
+}
 
 type BuyerProfile = {
   name: string;
@@ -50,18 +74,29 @@ type BuyerProfile = {
   address: string;
 };
 
-const Classic = ({ children, data }: { data: TemplateData, children: React.ReactNode; }) => {
+const Cart = () => {
+  const router = useRouter();
+  const params = useParams();
+  const siteParam = typeof params?.site === "string" ? params.site : Array.isArray(params?.site) ? params?.site[0] : undefined;
+  const [templateData, setTemplateData] = useState<TemplateData>({ subdomain: siteParam });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
-  const [templateData, setTemplateData] = useState<TemplateData>(data);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [showSearchMobile, setShowSearchMobile] = useState(false);
+   const [cartOpen, setCartOpen] = useState(false);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [footerModalOpen, setFooterModalOpen] = useState(false);
-  const [footerModalContent, setFooterModalContent] = useState<"about" | "contact" | "returns" | "shipping" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [cartHydrated, setCartHydrated] = useState(false);
+  const [wishlistHydrated, setWishlistHydrated] = useState(false);
+  const themeColor = templateData.themeColor || "#00BCD4";
+  const fontFamily = templateData.fontFamily || "system-ui";
+  const isDark = templateData.darkMode || false;  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  
+  const [couponCode, setCouponCode] = useState("");
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [buyerProfile, setBuyerProfile] = useState<BuyerProfile>({
     name: "",
@@ -70,7 +105,9 @@ const Classic = ({ children, data }: { data: TemplateData, children: React.React
     address: "",
   });
   const [editingProfile, setEditingProfile] = useState(false);
-  const themeColor = templateData.themeColor || "#111827";
+ const [loadingProducts, setLoadingProducts] = useState(true);
+  const [footerModalOpen, setFooterModalOpen] = useState(false);
+  const [footerModalContent, setFooterModalContent] = useState<"about" | "contact" | "returns" | "shipping" | null>(null);
 
   // Load buyer profile from localStorage
   useEffect(() => {
@@ -102,60 +139,57 @@ const Classic = ({ children, data }: { data: TemplateData, children: React.React
     } catch {}
   }, []);
 
+  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoadingProducts(true);
+	 setLoadingProducts(true);
         let currentSiteId = templateData.siteId;
         let currentData = { ...templateData };
-
-        if (!currentData.businessName || !currentSiteId) {
-          let siteDoc: any = null;
-          if (currentSiteId) {
-            const docRef = doc(db, "sites", currentSiteId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-              siteDoc = { id: docSnap.id, ...docSnap.data() };
-            }
-          } else if (currentData.subdomain) {
+        let siteDoc: any = null;
+        if (siteParam) {
+          const byId = await getDoc(doc(db, "sites", siteParam));
+          if (byId.exists()) {
+            siteDoc = { id: byId.id, ...byId.data() };
+          } else {
             const sitesRef = collection(db, "sites");
-            const sq = query(sitesRef, where("subdomain", "==", currentData.subdomain));
+            const sq = query(sitesRef, where("subdomain", "==", siteParam));
             const ss = await getDocs(sq);
             if (!ss.empty) {
               siteDoc = { id: ss.docs[0].id, ...ss.docs[0].data() };
             }
           }
-
-          if (siteDoc) {
-            currentSiteId = siteDoc.id;
-            currentData = {
-              ...currentData,
-              siteId: siteDoc.id,
-              businessName: siteDoc.name || siteDoc.businessName || currentData.businessName,
-              logo: siteDoc.logo || currentData.logo,
-              coverImage: siteDoc.coverImage || currentData.coverImage,
-              about: siteDoc.about || siteDoc.description || currentData.about,
-              tagline: siteDoc.tagline || currentData.tagline,
-              themeColor: siteDoc.themeColor || currentData.themeColor,
-              fontFamily: siteDoc.fontFamily || currentData.fontFamily,
-              darkMode: siteDoc.darkMode ?? currentData.darkMode,
-              whatsapp: siteDoc.whatsapp || currentData.whatsapp,
-              phone: siteDoc.phone || currentData.phone,
-              contactEmail: siteDoc.email || siteDoc.contactEmail || currentData.contactEmail,
-              category: siteDoc.category || currentData.category,
-            };
-            setTemplateData(currentData);
-          }
         }
-
-        if (!currentSiteId) {
-          setProducts([]);
-          setFilteredProducts([]);
-          setLoadingProducts(false);
-          return;
+        if (siteDoc) {
+          currentSiteId = siteDoc.id;
+          currentData = {
+            ...currentData,
+            siteId: siteDoc.id,
+            businessName: (siteDoc as any).name || (siteDoc as any).businessName || currentData.businessName,
+            logo: (siteDoc as any).logo || currentData.logo,
+            coverImage: (siteDoc as any).coverImage || currentData.coverImage,
+            about: (siteDoc as any).description || (siteDoc as any).about || currentData.about,
+            tagline: (siteDoc as any).tagline || currentData.tagline,
+            themeColor: (siteDoc as any).themeColor || currentData.themeColor,
+            fontFamily: (siteDoc as any).fontFamily || currentData.fontFamily,
+            darkMode: (siteDoc as any).darkMode ?? currentData.darkMode,
+            whatsapp: (siteDoc as any).whatsapp || currentData.whatsapp,
+            phone: (siteDoc as any).phone || currentData.phone,
+            contactEmail: (siteDoc as any).email || (siteDoc as any).contactEmail || currentData.contactEmail,
+            category: (siteDoc as any).category || currentData.category,
+          };
+          setTemplateData(currentData);
         }
-
-        const productsRef = collection(db, "products");
+        if (currentSiteId) {
+          const productsRef = collection(db, "products");
+          const pq = query(productsRef, where("siteId", "==", currentSiteId), orderBy("createdAt", "desc"));
+          const snap = await getDocs(pq);
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
+          setProducts(list);
+        }
+  const productsRef = collection(db, "products");
         const pq = query(productsRef, where("siteId", "==", currentSiteId), orderBy("createdAt", "desc"));
         const snap = await getDocs(pq);
         const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as Product));
@@ -164,12 +198,13 @@ const Classic = ({ children, data }: { data: TemplateData, children: React.React
       } catch {
         setProducts([]);
         setFilteredProducts([]);
-      } finally {
+} finally {
         setLoadingProducts(false);
       }
-    };
+ };
+
     fetchData();
-  }, [templateData.siteId, templateData.subdomain, templateData.businessName]);
+  }, [templateData.siteId, [siteParam], templateData.subdomain, templateData.businessName]);
 
   useEffect(() => {
     let filtered = products;
@@ -190,26 +225,45 @@ const Classic = ({ children, data }: { data: TemplateData, children: React.React
     setFilteredProducts(filtered);
   }, [selectedCategory, searchQuery, products]);
 
-  const categories: CategoryTile[] = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of products) {
-      const cat = p.category || "Collections";
-      if (!map.has(cat) && p.image) {
-        map.set(cat, p.image);
-      }
-    }
+   
 
-    const tiles = Array.from(map.entries()).map(([name, image]) => ({ name, image }));
-    if (!tiles.length) {
-      return [
-        { name: "New Arrivals", image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=300&fit=crop" },
-        { name: "Best Sellers", image: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=400&h=300&fit=crop" },
-        { name: "Sale Items", image: "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=400&h=300&fit=crop" },
-        { name: "Collections", image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=300&fit=crop" },
-      ];
-    }
-    return tiles.slice(0, 4);
-  }, [products]);
+ 
+  useEffect(() => {
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("webownr_cart") : null;
+      if (stored) {
+        const items = JSON.parse(stored) as CartItem[];
+        setCartItems(items);
+      }
+      setCartHydrated(true);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && cartHydrated) {
+        localStorage.setItem("webownr_cart", JSON.stringify(cartItems));
+      }
+    } catch {}
+  }, [cartItems, cartHydrated]);
+
+  const updateQuantity = (id: string, change: number) => {
+    setCartItems(items =>
+      items.map(item =>
+        item.id === id
+          ? { ...item, quantity: Math.max(1, item.quantity + change) }
+          : item
+      )
+    );
+  };
+
+  const removeItem = (id: string) => {
+    setCartItems(items => items.filter(item => item.id !== id));
+  };
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shipping = templateData.shipping || 0;
+  const total = subtotal + shipping;
 
   const openFooterModal = (content: "about" | "contact" | "returns" | "shipping") => {
     setFooterModalContent(content);
@@ -250,15 +304,16 @@ const Classic = ({ children, data }: { data: TemplateData, children: React.React
 
   const modalData = getModalContent();
 
+
   return (
-    <div className="min-h-screen bg-stone-50">
-      {/* Top Bar */}
+    <div className="min-h-screen bg-background" style={{ fontFamily }}>
+       {/* Top Bar */}
       <div className="bg-stone-800 text-white text-sm py-2" style={{backgroundColor: templateData.themeColor}}>
         <div className="container mx-auto px-4 flex justify-between items-center">
-          <span>Free shipping on orders over $150</span>
+          <span>Welcome to our store.</span>
           <div className="hidden md:flex items-center gap-6">
-            <a href="#" className="hover:text-white transition-colors">Track Order</a>
-            <a href="#" className="hover:text-white transition-colors">Help</a>
+            <a href="#socials" className="hover:text-white transition-colors">Social handles</a>
+            <a href="#" onClick={() => openFooterModal("contact")} className="hover:text-white transition-colors">Help</a>
           </div>
         </div>
       </div>
@@ -325,12 +380,287 @@ const Classic = ({ children, data }: { data: TemplateData, children: React.React
         )}
       </header>
 
-      {children}
-      
+
+
+      <main className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-sm mb-8">
+          <Link href={'/'} className="text-muted-foreground hover:text-foreground">Home</Link>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          <span className="text-foreground">Shopping Cart</span>
+        </nav>
+
+        <div className="flex items-center gap-3 mb-8">
+          <ShoppingCart className="w-8 h-8" style={{color: themeColor}}/>
+          <h1 className="text-3xl font-bold text-foreground">Your Cart</h1>
+          <span className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-full">
+            {cartItems.reduce((sum, item) => sum + item.quantity, 0)} items
+          </span>
+        </div>
+
+        {cartItems.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+              <ShoppingCart className="w-12 h-12 text-muted-foreground" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Your cart is empty</h2>
+            <p className="text-muted-foreground mb-6">Looks like you haven't added any items yet.</p>
+            <Button className="w-full text-white font-semibold"
+                  style={{ backgroundColor: themeColor }} onClick={() => router.push('/')}>
+              Continue Shopping
+            </Button>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Cart Items */}
+            <div className="lg:col-span-2 space-y-4">
+              {cartItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex gap-4 p-4 bg-card rounded-2xl border border-border"
+                >
+                  <Link
+                    href={'/c/product/${item.id}'}
+                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden bg-muted shrink-0"
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link
+                      href={'/c/product/${item.id}'}
+                      className="font-medium text-foreground hover:text-primary transition-colors line-clamp-2"
+                    >
+                      {item.name}
+                    </Link>
+                    <p className="text-lg font-bold text-foreground mt-2">
+                      ${item.price}
+                    </p>
+
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center border border-border rounded-lg">
+                        <button
+                          onClick={() => updateQuantity(item.id, -1)}
+                          className="p-2 hover:bg-muted transition-colors"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-10 text-center font-medium text-sm">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(item.id, 1)}
+                          className="p-2 hover:bg-muted transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => removeItem(item.id)}
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <Link
+                href={'/'}
+                style={{color: themeColor}}
+                className="inline-flex items-center gap-2 text-sm hover:underline"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Continue Shopping
+              </Link>
+            </div>
+
+            {/* Order Summary */}
+            <div className="lg:col-span-1">
+              <div className="bg-card rounded-2xl border border-border p-6 sticky top-24">
+                <h2 className="text-lg font-semibold text-foreground mb-6">Order Summary</h2>
+
+                {/* Coupon */}
+                <div className="mb-6">
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Discount Code
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Enter code"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        style={{outline: 'none'}}
+                        className="pl-9"
+                      />
+                    </div>
+                    <Button className="text-white font-semibold"
+                  style={{ backgroundColor: themeColor }}>Apply</Button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-foreground">${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Shipping</span>
+                    <span className="font-semibold" style={{ color: shipping === 0 ? themeColor : undefined }}>
+                      {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
+                    </span>
+                  </div>
+                  {shipping > 0 && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded-lg">
+                      <Truck className="w-4 h-4" />
+                      Add coupon code for discount/free shipping
+                    </div>
+                  )}
+                  <div className="border-t border-border pt-3">
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-foreground">Total</span>
+                      <span className="text-xl font-bold text-foreground">
+                        ${total.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full text-white font-semibold"
+                  style={{ backgroundColor: themeColor }}
+                  size="lg"
+                  className="w-full"
+                  onClick={() => router.push('/c/checkout')}
+                >
+                  Proceed to Checkout
+                </Button>
+
+                <p className="text-xs text-center text-muted-foreground mt-4">
+                  Secure checkout powered by Stripe
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+      {wishlistOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 animate-fade-in"
+            onClick={() => setWishlistOpen(false)}
+          />
+          <div className="fixed top-0 right-0 bottom-0 w-full max-w-md bg-card z-50 shadow-2xl animate-slide-in-right flex flex-col">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-border flex-shrink-0">
+              <h2 className="text-lg md:text-xl font-bold text-foreground">Wishlist</h2>
+              <button
+                onClick={() => setWishlistOpen(false)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+              {Array.from(wishlist).length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Heart className="w-12 h-12 text-muted-foreground/30 mb-4" />
+                  <p className="text-foreground font-semibold mb-2">No liked products</p>
+                  <p className="text-sm text-muted-foreground">
+                    Tap the heart on products to add them here.
+                  </p>
+                </div>
+              ) : (
+                products
+                  .filter(p => wishlist.has(p.id))
+                  .map(product => (
+                    <div key={product.id} className="flex gap-4 p-4 bg-muted rounded-xl">
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-20 h-20 rounded-lg object-cover bg-background flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 rounded-lg bg-background flex items-center justify-center flex-shrink-0">
+                          <Package className="w-8 h-8 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm mb-1 line-clamp-2">
+                          {product.name}
+                        </h3>
+                        <p className="text-sm font-bold" style={{ color: themeColor }}>
+                          ${Number(product.price || 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0 space-y-2">
+                        <Button
+                          onClick={() =>
+                            setCartItems(prev => {
+                              const existing = prev.find(i => i.id === product.id);
+                              if (existing) {
+                                return prev.map(i =>
+                                  i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+                                );
+                              }
+                              return [
+                                ...prev,
+                                {
+                                  id: product.id,
+                                  name: product.name,
+                                  price: Number(product.price || 0),
+                                  quantity: 1,
+                                  image: product.image,
+                                },
+                              ];
+                            })
+                          }
+                          size="sm"
+                          className="text-white"
+                          style={{ backgroundColor: themeColor }}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-1" />
+                          Add
+                        </Button>
+                        <button
+                          onClick={() =>
+                            setWishlist(prev => {
+                              const next = new Set(prev);
+                              next.delete(product.id);
+                              return next;
+                            })
+                          }
+                          className="text-xs text-muted-foreground hover:text-foreground block"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+            <div className="p-4 md:p-6 border-t border-border space-y-3 flex-shrink-0">
+              <Button
+                onClick={() => setWishlistOpen(false)}
+                className="w-full text-foreground hover:bg-muted"
+                variant="ghost"
+              >
+                Continue Shopping
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
       {/* Footer */}
       <footer className="bg-black text-white py-16" style={{backgroundColor: "black"}}>
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
             <div>
               <h3 className="font-serif text-xl mb-6" style={{color: templateData.themeColor}}>{templateData.businessName || "CLASSIQUE"}</h3>
               <p className="text-sm leading-relaxed mb-6">
@@ -376,7 +706,7 @@ const Classic = ({ children, data }: { data: TemplateData, children: React.React
               </ul>
             </div>
             <div>
-              <h4 className="text-white font-medium mb-4" style={{color: templateData.themeColor}}>Socials</h4>
+              <h4 id="socials" className="text-white font-medium mb-4" style={{color: templateData.themeColor}}>Socials</h4>
               <div className="py-2 flex items-center gap-4">
                 {[Facebook, Instagram, Twitter].map((Icon, i) => {
                   const key = Icon.displayName?.toLowerCase() as keyof typeof templateData;
@@ -534,8 +864,9 @@ const Classic = ({ children, data }: { data: TemplateData, children: React.React
           </div>
         </div>
       )}
+
     </div>
   );
 };
 
-export default Classic;
+export default Cart;

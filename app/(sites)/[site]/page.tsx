@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import SiteRenderer from "@/components/SiteRenderer";
 import { getSiteData, getPageData } from "@/lib/data"; 
 
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 // NOTE: params is a Promise in Next.js 15
 type ParamsPromise = Promise<{ site: string }>;
 
@@ -14,7 +16,7 @@ export async function generateMetadata(
 
   return {
     title: `${site}`,
-    description: `Live site for ${site.description} on WebOwnr.`,
+    description: `Live site for ${site} on WebOwnr.`,
   };
 }
 
